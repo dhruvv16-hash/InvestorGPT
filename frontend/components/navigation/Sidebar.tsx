@@ -41,7 +41,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { name: "Dashboard", href: "/", icon: Home, active: pathname === "/" },
-    { name: "Company Research", href: "/", icon: Search, active: pathname.startsWith("/company") },
+    { name: "Company Research", href: "/company", icon: Search, active: pathname.startsWith("/company") },
     { name: "AI Screener", href: "/screener", icon: Sparkles, active: pathname.startsWith("/screener") },
     { name: "Strategy Builder", href: "/strategy", icon: Compass, active: pathname.startsWith("/strategy") },
     { name: "Watchlist Intel", href: "/watchlist", icon: Bell, active: pathname.startsWith("/watchlist") },
