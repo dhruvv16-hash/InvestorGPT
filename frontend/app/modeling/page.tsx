@@ -103,7 +103,7 @@ function ModelingLabContent() {
     const uId = userId || localStorage.getItem("investorgpt_user_id") || "guest";
     
     try {
-      let url = `http://127.0.0.1:8000/api/v1/modeling/model/${mId}?ticker=${ticker}&user_id=${uId}`;
+      let url = `https://backend-gamma-mocha-34.vercel.app/api/v1/modeling/model/${mId}?ticker=${ticker}&user_id=${uId}`;
       if (overrides) {
         const queryParams = new URLSearchParams();
         Object.entries(overrides).forEach(([k, v]) => {
@@ -155,7 +155,7 @@ function ModelingLabContent() {
   const fetchWorkspace = async () => {
     const uId = userId || localStorage.getItem("investorgpt_user_id") || "guest";
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/modeling/workspace?ticker=${ticker}&user_id=${uId}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/modeling/workspace?ticker=${ticker}&user_id=${uId}`);
       if (res.ok) {
         const data = await res.json();
         setWorkspaceModels(data.workspace || []);
@@ -169,7 +169,7 @@ function ModelingLabContent() {
   const fetchMacroSimulation = async (irDelta: number, oilPriceVal: number) => {
     setMacroLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/macro/simulate", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/macro/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -192,7 +192,7 @@ function ModelingLabContent() {
   // Fetch Industry Intelligence
   const fetchIndustryData = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/industry/${ticker}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/industry/${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setIndustryData(data);
@@ -205,7 +205,7 @@ function ModelingLabContent() {
   // Fetch Business Model Details
   const fetchBusinessData = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/business-model/${ticker}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/business-model/${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setBusinessData(data);
@@ -218,7 +218,7 @@ function ModelingLabContent() {
   // Fetch Management details
   const fetchManagementData = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/management/${ticker}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/management/${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setManagementData(data);
@@ -231,7 +231,7 @@ function ModelingLabContent() {
   // Fetch Capital Allocation details
   const fetchCapitalData = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/capital-allocation/${ticker}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/capital-allocation/${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setCapitalData(data);
@@ -244,7 +244,7 @@ function ModelingLabContent() {
   // Fetch Accounting Quality details
   const fetchAccountingData = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/earnings-quality/${ticker}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/earnings-quality/${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setAccountingData(data);
@@ -258,7 +258,7 @@ function ModelingLabContent() {
   const fetchBacktestData = async (year: number) => {
     setLoadingBacktest(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/backtest/${ticker}?year=${year}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/backtest/${ticker}?year=${year}`);
       if (res.ok) {
         const data = await res.json();
         setBacktestData(data);
@@ -275,7 +275,7 @@ function ModelingLabContent() {
     if (!modelData) return;
     setCalibrationStatus("Saving prediction record...");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/calibration/log", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/calibration/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -302,7 +302,7 @@ function ModelingLabContent() {
   const triggerCalibration = async () => {
     setCalibratingRecords(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/calibration/calibrate?ticker=${ticker}`, { method: "POST" });
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/calibration/calibrate?ticker=${ticker}`, { method: "POST" });
       if (res.ok) {
         setCalibrationStatus("Calibration complete.");
         fetchCalibrationFeedback();
@@ -318,7 +318,7 @@ function ModelingLabContent() {
   const fetchCalibrationFeedback = async () => {
     setLoadingCalibration(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/calibration/feedback?ticker=${ticker}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/calibration/feedback?ticker=${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setCalibrationFeedback(data);
@@ -432,7 +432,7 @@ function ModelingLabContent() {
     if (!saveName.trim()) return;
     const uId = userId || localStorage.getItem("investorgpt_user_id") || "guest";
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/modeling/save", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/modeling/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -471,7 +471,7 @@ function ModelingLabContent() {
     const uId = userId || localStorage.getItem("investorgpt_user_id") || "guest";
     
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/modeling/chat", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/modeling/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -816,7 +816,7 @@ function ModelingLabContent() {
           {modelData && (
             <div className="grid grid-cols-2 gap-2 mt-4">
               <a
-                href={`http://127.0.0.1:8000/api/v1/modeling/export/${selectedModelId}?ticker=${ticker}&user_id=${userId || "guest"}`}
+                href={`https://backend-gamma-mocha-34.vercel.app/api/v1/modeling/export/${selectedModelId}?ticker=${ticker}&user_id=${userId || "guest"}`}
                 download
                 className="px-2 py-3 border border-white/10 hover:border-accent/40 rounded-xl text-neutral hover:text-accent text-[10px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all bg-white/[0.01]"
               >
@@ -824,7 +824,7 @@ function ModelingLabContent() {
                 <span>Export Excel</span>
               </a>
               <a
-                href={`http://127.0.0.1:8000/api/v1/modeling/export/pdf/${selectedModelId}?ticker=${ticker}&user_id=${userId || "guest"}`}
+                href={`https://backend-gamma-mocha-34.vercel.app/api/v1/modeling/export/pdf/${selectedModelId}?ticker=${ticker}&user_id=${userId || "guest"}`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-2 py-3 border border-white/10 hover:border-accent/40 rounded-xl text-neutral hover:text-accent text-[10px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all bg-white/[0.01]"

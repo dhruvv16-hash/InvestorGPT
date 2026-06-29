@@ -26,7 +26,7 @@ export default function ComparePage() {
 
   const fetchRecentSearches = async (uId: string) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/search/recent?user_id=${uId}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/search/recent?user_id=${uId}`);
       if (res.ok) {
         const json = await res.json();
         setRecentSearches(json.recent || []);
@@ -38,7 +38,7 @@ export default function ComparePage() {
 
   const fetchTrendingSearches = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/search/trending");
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/search/trending");
       if (res.ok) {
         const json = await res.json();
         setTrendingSearches(json.trending || []);
@@ -58,7 +58,7 @@ export default function ComparePage() {
 
     const fetchLocalCompanies = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/companies");
+        const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/companies");
         if (res.ok) {
           const json = await res.json();
           setLocalCompanies(json.companies || []);
@@ -86,7 +86,7 @@ export default function ComparePage() {
     const uId = userId || localStorage.getItem("investorgpt_user_id");
     if (!uId) return;
     try {
-      await fetch("http://127.0.0.1:8000/api/v1/search/click", {
+      await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/search/click", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,7 +109,7 @@ export default function ComparePage() {
     const uId = userId || localStorage.getItem("investorgpt_user_id");
     if (!uId) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/search/recent?user_id=${uId}`, {
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/search/recent?user_id=${uId}`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -187,7 +187,7 @@ export default function ComparePage() {
 
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/v1/search?q=${encodeURIComponent(term)}`,
+          `https://backend-gamma-mocha-34.vercel.app/api/v1/search?q=${encodeURIComponent(term)}`,
           { signal }
         );
         if (res.ok) {
@@ -241,7 +241,7 @@ export default function ComparePage() {
     setComparison([]);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/compare", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tickers }),
@@ -354,7 +354,7 @@ export default function ComparePage() {
             <h3 className="text-xs font-bold text-neutral uppercase tracking-wider">Comparison Matrix</h3>
             <div className="flex items-center gap-2">
               <a
-                href={`http://127.0.0.1:8000/api/v1/compare/export?tickers=${tickers.join(",")}&format=pdf`}
+                href={`https://backend-gamma-mocha-34.vercel.app/api/v1/compare/export?tickers=${tickers.join(",")}&format=pdf`}
                 download
                 className="px-3 py-1.5 border border-white/10 hover:border-accent/40 rounded-lg text-neutral hover:text-accent text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors bg-white/[0.01]"
               >
@@ -362,7 +362,7 @@ export default function ComparePage() {
                 <span>Export PDF</span>
               </a>
               <a
-                href={`http://127.0.0.1:8000/api/v1/compare/export?tickers=${tickers.join(",")}&format=xlsx`}
+                href={`https://backend-gamma-mocha-34.vercel.app/api/v1/compare/export?tickers=${tickers.join(",")}&format=xlsx`}
                 download
                 className="px-3 py-1.5 border border-white/10 hover:border-accent/40 rounded-lg text-neutral hover:text-accent text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors bg-white/[0.01]"
               >

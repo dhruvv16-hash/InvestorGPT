@@ -29,7 +29,7 @@ export default function ResearchHistoryPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/research-history?user_id=${userId}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/research-history?user_id=${userId}`);
       if (!res.ok) {
         throw new Error("Failed to retrieve research logs.");
       }
@@ -52,7 +52,7 @@ export default function ResearchHistoryPage() {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this research record?")) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/research-history/${analysisId}`, {
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/research-history/${analysisId}`, {
         method: "DELETE"
       });
       if (res.ok) {

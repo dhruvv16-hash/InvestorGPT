@@ -32,7 +32,7 @@ export function StockSearchInput({
 
   // Pre-fetch local companies for instant suggestions on first render
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/v1/companies")
+    fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/companies")
       .then(res => res.json())
       .then(data => setLocalCompanies(data.companies || []))
       .catch(err => console.error("Prefetch error:", err));
@@ -114,7 +114,7 @@ export function StockSearchInput({
       setLoading(true);
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/v1/search?q=${encodeURIComponent(term)}`,
+          `https://backend-gamma-mocha-34.vercel.app/api/v1/search?q=${encodeURIComponent(term)}`,
           { signal: abortControllerRef.current.signal }
         );
         if (res.ok) {

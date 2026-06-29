@@ -76,18 +76,18 @@ function CompanyDashboardContent({ ticker }: { ticker: string }) {
       setLoadingExtras(true);
       try {
         const [ownRes, altRes, foreRes, debRes, timeRes, expRes, indRes, busRes, mgmtRes, capRes, acctRes, chainRes] = await Promise.all([
-          fetch(`http://127.0.0.1:8000/api/v1/ownership/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/alternative-data/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/forecasting/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/debate/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/timeline/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/explainability/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/industry/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/business-model/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/management/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/capital-allocation/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/earnings-quality/${ticker}`).then(r => r.ok ? r.json() : null),
-          fetch(`http://127.0.0.1:8000/api/v1/supply-chain/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/ownership/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/alternative-data/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/forecasting/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/debate/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/timeline/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/explainability/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/industry/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/business-model/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/management/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/capital-allocation/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/earnings-quality/${ticker}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/supply-chain/${ticker}`).then(r => r.ok ? r.json() : null),
         ]);
 
         setOwnershipData(ownRes);
@@ -127,7 +127,7 @@ function CompanyDashboardContent({ ticker }: { ticker: string }) {
 
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/analyze/${analysisId}`);
+        const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/analyze/${analysisId}`);
         if (!res.ok) {
           throw new Error("Failed to fetch analysis details");
         }
@@ -317,7 +317,7 @@ function CompanyDashboardContent({ ticker }: { ticker: string }) {
             <span>Financial Modeling Lab</span>
           </button>
           <a
-            href={`http://127.0.0.1:8000/api/v1/report/${analysisId}/export?format=pdf`}
+            href={`https://backend-gamma-mocha-34.vercel.app/api/v1/report/${analysisId}/export?format=pdf`}
             download
             className="px-4 py-2 border border-white/10 hover:border-accent/40 rounded-xl text-neutral hover:text-accent text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors bg-white/[0.01]"
           >
@@ -325,7 +325,7 @@ function CompanyDashboardContent({ ticker }: { ticker: string }) {
             <span>PDF Report</span>
           </a>
           <a
-            href={`http://127.0.0.1:8000/api/v1/report/${analysisId}/export?format=xlsx`}
+            href={`https://backend-gamma-mocha-34.vercel.app/api/v1/report/${analysisId}/export?format=xlsx`}
             download
             className="px-4 py-2 border border-white/10 hover:border-accent/40 rounded-xl text-neutral hover:text-accent text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors bg-white/[0.01]"
           >
@@ -765,7 +765,7 @@ function CompanyDashboardContent({ ticker }: { ticker: string }) {
                       onClick={async () => {
                         setChainShockLoading(true);
                         try {
-                          const res = await fetch("http://127.0.0.1:8000/api/v1/supply-chain/disrupt", {
+                          const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/supply-chain/disrupt", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ disrupted_node_id: selectedDisruptedNode, disruption_pct: disruptionPct })
@@ -1221,7 +1221,7 @@ function CompanyDashboardContent({ ticker }: { ticker: string }) {
                   onClick={async () => {
                     setMacroSimLoading(true);
                     try {
-                      const res = await fetch("http://127.0.0.1:8000/api/v1/macro/simulate", {
+                      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/macro/simulate", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ ticker: ticker, interest_rate_delta_pct: macroRateDelta, oil_price_usd: macroOilPrice })

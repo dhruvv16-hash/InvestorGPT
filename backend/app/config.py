@@ -50,9 +50,21 @@ class Settings(BaseModel):
     DEFAULT_WEIGHT_SENTIMENT: float = 0.05
     DEFAULT_WEIGHT_COMPETITOR: float = 0.05
 
+db_url = os.environ.get("DATABASE_URL", "sqlite:///./investorgpt.db")
+if os.environ.get("VERCEL"):
+    import shutil
+    src_db = Path(__file__).resolve().parent.parent / "investorgpt.db"
+    dest_db = Path("/tmp/investorgpt.db")
+    if not dest_db.exists() and src_db.exists():
+        try:
+            shutil.copy(src_db, dest_db)
+        except Exception:
+            pass
+    db_url = "sqlite:////tmp/investorgpt.db"
+
 settings = Settings(
     ENVIRONMENT=os.environ.get("ENVIRONMENT", "development"),
-    DATABASE_URL=os.environ.get("DATABASE_URL", "sqlite:///./investorgpt.db"),
+    DATABASE_URL=db_url,
     REDIS_URL=os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
     CHROMA_PERSIST_DIR=os.environ.get("CHROMA_PERSIST_DIR", "./data/chroma"),
     OLLAMA_HOST=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),

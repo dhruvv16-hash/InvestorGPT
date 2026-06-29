@@ -49,7 +49,7 @@ export default function SettingsPage() {
     setLoading(true);
     setClearStatus("");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/settings/clear-cache", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/settings/clear-cache", {
         method: "POST"
       });
       if (res.ok) {

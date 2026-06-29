@@ -16,7 +16,7 @@ export default function MarketNewsPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/news");
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/news");
       if (!res.ok) {
         throw new Error("Could not retrieve market news articles.");
       }

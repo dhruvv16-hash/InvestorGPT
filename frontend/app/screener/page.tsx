@@ -30,7 +30,7 @@ export default function ScreenerPage() {
     setSearched(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/screener?query=${encodeURIComponent(finalQuery)}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/screener?query=${encodeURIComponent(finalQuery)}`);
       if (!res.ok) {
         throw new Error("Failed to run screener query.");
       }

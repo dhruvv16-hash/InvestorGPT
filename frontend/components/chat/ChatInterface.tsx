@@ -136,7 +136,7 @@ export function ChatInterface({ analysisId }: Props) {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/chat/${analysisId}`, {
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/chat/${analysisId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg }),

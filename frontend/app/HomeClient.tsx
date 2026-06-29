@@ -22,7 +22,7 @@ export default function HomeClient() {
 
   const fetchRecentSearches = async (uId: string) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/search/recent?user_id=${uId}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/search/recent?user_id=${uId}`);
       if (res.ok) {
         const json = await res.json();
         setRecentSearches(json.recent || []);
@@ -34,7 +34,7 @@ export default function HomeClient() {
 
   const fetchTrendingSearches = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/search/trending");
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/search/trending");
       if (res.ok) {
         const json = await res.json();
         setTrendingSearches(json.trending || []);
@@ -55,7 +55,7 @@ export default function HomeClient() {
 
     const fetchLocalCompanies = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/companies");
+        const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/companies");
         if (res.ok) {
           const json = await res.json();
           setLocalCompanies(json.companies || []);
@@ -83,7 +83,7 @@ export default function HomeClient() {
     const uId = userId || localStorage.getItem("investorgpt_user_id");
     if (!uId) return;
     try {
-      await fetch("http://127.0.0.1:8000/api/v1/search/click", {
+      await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/search/click", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,7 +106,7 @@ export default function HomeClient() {
     const uId = userId || localStorage.getItem("investorgpt_user_id");
     if (!uId) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/search/recent?user_id=${uId}`, {
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/search/recent?user_id=${uId}`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -125,7 +125,7 @@ export default function HomeClient() {
 
     try {
       // Direct POST to backend API to initialize analysis
-      const res = await fetch("http://127.0.0.1:8000/api/v1/analyze", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: symbol }),
@@ -207,7 +207,7 @@ export default function HomeClient() {
 
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/v1/search?q=${encodeURIComponent(term)}`,
+          `https://backend-gamma-mocha-34.vercel.app/api/v1/search?q=${encodeURIComponent(term)}`,
           { signal }
         );
         if (res.ok) {

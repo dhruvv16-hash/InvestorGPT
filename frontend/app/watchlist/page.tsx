@@ -33,7 +33,7 @@ export default function WatchlistPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/watchlist?user_id=${userId}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/watchlist?user_id=${userId}`);
       if (!res.ok) {
         throw new Error("Failed to load watchlist intelligence.");
       }
@@ -58,7 +58,7 @@ export default function WatchlistPage() {
 
     setFormLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/watchlist/add", {
+      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/watchlist/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,7 +84,7 @@ export default function WatchlistPage() {
   const handleRemoveTrigger = async (triggerId: string) => {
     if (!confirm("Are you sure you want to remove this alert trigger?")) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/watchlist/remove/${triggerId}`, {
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/watchlist/remove/${triggerId}`, {
         method: "DELETE"
       });
       if (res.ok) {
