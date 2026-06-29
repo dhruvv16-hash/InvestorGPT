@@ -24,6 +24,7 @@ htmlcov/
 
 # Local databases
 *.db
+!backend/database_seed.db
 investorgpt.db
 test_new_features.db
 

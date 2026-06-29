@@ -53,7 +53,7 @@ class Settings(BaseModel):
 db_url = os.environ.get("DATABASE_URL", "sqlite:///./investorgpt.db")
 if os.environ.get("VERCEL"):
     import shutil
-    src_db = Path(__file__).resolve().parent.parent / "investorgpt.db"
+    src_db = Path(__file__).resolve().parent.parent / "database_seed.db"
     dest_db = Path("/tmp/investorgpt.db")
     if not dest_db.exists() and src_db.exists():
         try:
