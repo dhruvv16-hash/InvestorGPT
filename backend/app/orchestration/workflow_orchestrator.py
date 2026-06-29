@@ -49,7 +49,7 @@ class WorkflowOrchestrator:
 
         # 1. Resolve Company
         try:
-            profile = await self.resolver.resolve(query)
+            profile = await self.resolver.resolve(query, db=self.db)
         except Exception as e:
             logger.error(f"Failed to resolve company for query '{query}': {e}")
             raise ValueError(f"Could not resolve company for query '{query}'") from e

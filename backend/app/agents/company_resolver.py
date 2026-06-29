@@ -25,8 +25,34 @@ COMMON_COMPANIES = {
 class CompanyResolverAgent:
     """Resolves a free-text company name or query to a verified ticker and profile."""
 
-    async def resolve(self, query: str) -> dict[str, Any]:
+    async def resolve(self, query: str, db=None) -> dict[str, Any]:
         cleaned_query = query.strip().lower()
+
+        # 0. Check local database first if db is provided
+        if db:
+            try:
+                from app.models.models import Company as DBCompany
+                upper_query = query.strip().upper()
+                company = db.query(DBCompany).filter(
+                    (DBCompany.ticker == upper_query) |
+                    (DBCompany.name.ilike(f"%{query.strip()}%"))
+                ).first()
+                if company:
+                    return {
+                        "ticker": company.ticker,
+                        "exchange": company.exchange or "UNKNOWN",
+                        "country": company.country or "UNKNOWN",
+                        "currency": company.currency or "USD",
+                        "sector": company.sector or "UNKNOWN",
+                        "industry": company.industry or "UNKNOWN",
+                        "name": company.name,
+                        "description": company.description,
+                        "website": company.website,
+                        "market_cap": company.market_cap,
+                        "shares_outstanding": company.shares_outstanding
+                    }
+            except Exception as e:
+                logger.warning(f"Local DB company resolve failed: {e}")
 
         # 1. Check common companies first for instant lookup
         if cleaned_query in COMMON_COMPANIES:
