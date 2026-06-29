@@ -101,3 +101,108 @@ body {
 .font-mono {
   font-family: var(--font-mono) !important;
 }
+
+/* Sidebar Premium Enhancements */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.premium-gradient-card {
+  background: linear-gradient(-45deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1)) !important;
+  background-size: 400% 400% !important;
+  animation: gradient-flow 10s ease infinite !important;
+}
+
+.premium-logo-glow {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.premium-logo-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent, var(--ig-color-accent), transparent 50%, var(--ig-color-primary), transparent);
+  animation: spin-slow 4s linear infinite;
+  z-index: 0;
+}
+
+.premium-logo-glow-inner {
+  position: relative;
+  z-index: 10;
+  background: #0f1115;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+}
+
+/* Slide Glow for Active Sidebar Items */
+.active-item-glow {
+  position: relative;
+}
+
+.active-item-glow::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--ig-color-accent), var(--ig-color-primary));
+  border-radius: 9999px;
+  box-shadow: 0 0 10px var(--ig-color-accent), 0 0 20px var(--ig-color-primary);
+}
+
+/* Custom Tooltip */
+.sidebar-tooltip {
+  visibility: hidden;
+  position: absolute;
+  left: calc(100% + 12px);
+  background: rgba(10, 11, 14, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  pointer-events: none;
+}
+
+.sidebar-tooltip-arrow {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent rgba(255, 255, 255, 0.08) transparent transparent;
+}
+
+.sidebar-item-container:hover .sidebar-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0);
+}

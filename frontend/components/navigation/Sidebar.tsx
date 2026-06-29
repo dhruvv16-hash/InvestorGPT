@@ -78,8 +78,8 @@ export default function Sidebar() {
         {/* Sidebar Header */}
         <div className={`p-4 border-b border-white/5 flex items-center justify-between ${isCollapsed ? "lg:justify-center" : ""}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white font-mono shadow-lg shadow-blue-500/20 shrink-0">
-              I
+            <div className="w-8 h-8 rounded-xl premium-logo-glow flex items-center justify-center font-bold text-white font-mono shadow-lg shadow-blue-500/20 shrink-0">
+              <div className="premium-logo-glow-inner">I</div>
             </div>
             {!isCollapsed && (
               <div className="animate-fade-in">
@@ -116,39 +116,45 @@ export default function Sidebar() {
 
             // Render Navigatable Link Item
             return (
-              <Link
-                key={idx}
-                href={item.href}
-                onClick={() => setIsMobileOpen(false)}
-                title={isCollapsed ? item.name : ""}
-                className={`flex items-center rounded-xl text-xs font-bold transition-all p-2.5 ${
-                  isCollapsed ? "lg:justify-center" : "justify-between"
-                } ${
-                  item.active 
-                    ? "bg-accent/10 border border-accent/20 text-accent" 
-                    : "text-neutral/70 hover:text-foreground hover:bg-white/[0.02]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 shrink-0 ${item.active ? "text-accent" : "text-neutral/50"}`} />
-                  {!isCollapsed && <span>{item.name}</span>}
-                </div>
-                {!isCollapsed && item.badge && (
-                  <span className="text-[8px] bg-accent/20 border border-accent/30 text-accent px-1.5 py-0.5 rounded-md font-bold tracking-wider animate-pulse">
-                    {item.badge}
-                  </span>
+              <div key={idx} className="relative sidebar-item-container flex w-full">
+                <Link
+                  href={item.href}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={`flex items-center rounded-xl text-xs font-bold transition-all p-2.5 w-full ${
+                    isCollapsed ? "lg:justify-center" : "justify-between"
+                  } ${
+                    item.active 
+                      ? "bg-accent/15 border border-accent/20 text-accent active-item-glow" 
+                      : "text-neutral/70 hover:text-foreground hover:bg-white/[0.02]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`w-4 h-4 shrink-0 ${item.active ? "text-accent animate-pulse" : "text-neutral/50"}`} />
+                    {!isCollapsed && <span>{item.name}</span>}
+                  </div>
+                  {!isCollapsed && item.badge && (
+                    <span className="text-[8px] bg-accent/20 border border-accent/30 text-accent px-1.5 py-0.5 rounded-md font-bold tracking-wider animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+                {isCollapsed && (
+                  <div className="sidebar-tooltip">
+                    <div className="sidebar-tooltip-arrow" />
+                    {item.name}
+                  </div>
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-white/5 bg-white/[0.01]">
-          <div className={`flex items-center gap-3 p-2 bg-gradient-to-r from-accent/5 to-primary/5 rounded-xl border border-accent/10 ${
+          <div className={`flex items-center gap-3 p-2 rounded-xl border border-accent/15 premium-gradient-card ${
             isCollapsed ? "lg:justify-center" : ""
           }`}>
-            <Sparkles className="w-4.5 h-4.5 text-accent shrink-0" />
+            <Sparkles className="w-4.5 h-4.5 text-accent shrink-0 animate-pulse" />
             {!isCollapsed && (
               <div className="truncate">
                 <h4 className="text-[10px] font-bold text-foreground">Premium Active</h4>
