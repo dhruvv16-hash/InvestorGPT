@@ -48,8 +48,8 @@ class CompanyResolverAgent:
                         "name": company.name,
                         "description": company.description,
                         "website": company.website,
-                        "market_cap": company.market_cap,
-                        "shares_outstanding": company.shares_outstanding
+                        "market_cap": None,
+                        "shares_outstanding": None
                     }
             except Exception as e:
                 logger.warning(f"Local DB company resolve failed: {e}")
