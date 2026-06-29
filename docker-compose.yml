@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./investorgpt.db:/app/investorgpt.db
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - chromadb
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000"
+    volumes:
+      - ./data/chroma:/chroma/chroma
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama

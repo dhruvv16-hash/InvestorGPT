@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  /* Premium Dark Theme variables by default */
+  --background: #0f1115;
+  --foreground: #f3f4f6;
+  
+  --ig-color-bullish: #34d399;   /* Emerald */
+  --ig-color-bearish: #f87171;   /* Red */
+  --ig-color-neutral: #9ca3af;   /* Grey */
+  --ig-color-accent: #06b6d4;    /* Cyan */
+  --ig-color-primary: #8b5cf6;   /* Purple */
+  --ig-color-surface: #181c25;
+  --ig-color-surface-hover: #222a36;
+  --ig-color-border: #2d3748;
+  --ig-color-shadow: rgba(0, 0, 0, 0.4);
+  
+  --ig-radius-card: 16px;
+  --font-mono: 'IBM Plex Mono', 'Courier New', Courier, monospace;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-bullish: var(--ig-color-bullish);
+  --color-bearish: var(--ig-color-bearish);
+  --color-neutral: var(--ig-color-neutral);
+  --color-accent: var(--ig-color-accent);
+  --color-primary: var(--ig-color-primary);
+  --color-surface: var(--ig-color-surface);
+  --color-border: var(--ig-color-border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,39%,10%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,9%,1) 0, transparent 50%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(24, 28, 37, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--ig-radius-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Micro-animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ig-color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ig-color-accent);
+}
+
+/* Accessible typography styling */
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
