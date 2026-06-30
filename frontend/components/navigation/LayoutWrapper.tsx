@@ -36,7 +36,19 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           init.headers = headers;
         }
       }
-      return originalFetch(input, init);
+      
+      const response = await originalFetch(input, init);
+      
+      if (response.status === 401 && isBackendCall) {
+        // Clear invalid/expired session
+        localStorage.removeItem("investorgpt_token");
+        localStorage.removeItem("investorgpt_user_id");
+        window.dispatchEvent(new Event("auth-state-change"));
+        // Redirect to login page
+        window.location.href = "/login";
+      }
+      
+      return response;
     };
 
     return () => {
