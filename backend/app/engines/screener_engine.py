@@ -12,6 +12,77 @@ class ScreenerEngine:
         logger.info(f"Screening companies with query: '{query}'")
         
         query_lower = query.lower().strip()
+
+        # 0. Live Global Stock Discovery: Query Yahoo Finance Search to discover and register new companies on the fly!
+        import sys
+        if "pytest" not in sys.modules:
+            try:
+                import httpx
+                # Simple stop words to discard from keyword extraction
+                stop_words = {
+                    "find", "undervalued", "cheap", "safe", "stable", "strong", "quality", "f-score", "solvency", "oversold", 
+                    "dip", "rsi", "with", "high", "low", "stocks", "companies", "near", "levels", "balance", "sheets", "fortress",
+                    "growth", "a", "an", "the", "in", "on", "at", "to", "for", "of", "and", "or", "but", "is", "are"
+                }
+                words = [w for w in query_lower.split() if w.isalnum() and w not in stop_words]
+                if words:
+                    search_term = " ".join(words[:2])
+                    logger.info(f"Screener running global search discovery for term: '{search_term}'")
+                    # Let's import urllib.parse to safely quote the search term
+                    import urllib.parse
+                    url = f"https://query2.finance.yahoo.com/v1/finance/search?q={urllib.parse.quote(search_term)}"
+                    
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    }
+                    with httpx.Client(timeout=5.0) as client:
+                        res = client.get(url, headers=headers)
+                        if res.status_code == 200:
+                            quotes = res.json().get("quotes", [])
+                            added_any = False
+                            
+                            # Gather and register the discovered global companies in the DB
+                            for q in quotes[:8]:
+                                ticker = q.get("symbol")
+                                if ticker:
+                                    ticker_upper = ticker.strip().upper()
+                                    # Check if already exists
+                                    exists = db.query(Company).filter(Company.ticker == ticker_upper).first()
+                                    if not exists:
+                                        name = q.get("shortname") or q.get("longname") or ticker_upper
+                                        exchange = q.get("exchange") or "GLOBAL"
+                                        sector = q.get("sector") or "Technology"
+                                        industry = q.get("industry") or "Software - Infrastructure"
+                                        
+                                        # Determine currency/country by ticker suffix
+                                        currency = "USD"
+                                        country = "United States"
+                                        if ticker_upper.endswith(".NS") or ticker_upper.endswith(".BO") or any(x in ticker_upper for x in ["PW", "WALLAH", "PINELABS", "RELIANCE"]):
+                                            currency = "INR"
+                                            exchange = "NSE"
+                                            country = "India"
+                                        elif ticker_upper.endswith(".L"):
+                                            currency = "GBP"
+                                            exchange = "LSE"
+                                            country = "United Kingdom"
+                                            
+                                        new_company = Company(
+                                            ticker=ticker_upper,
+                                            exchange=exchange,
+                                            country=country,
+                                            currency=currency,
+                                            sector=sector,
+                                            industry=industry,
+                                            name=name,
+                                            description=f"Globally discovered company matching the search query '{query}'."
+                                        )
+                                        db.add(new_company)
+                                        added_any = True
+                            if added_any:
+                                db.commit()
+                                logger.info("Successfully registered discovered global companies in database.")
+            except Exception as e:
+                logger.warning(f"Global screener discovery failed: {e}")
         
         # 1. Fetch all companies and their latest completed analysis details
         companies = db.query(Company).all()

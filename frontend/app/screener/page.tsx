@@ -4,6 +4,14 @@ import { useState } from "react";
 import { Search, Loader2, Sparkles, Filter, ChevronRight, BarChart3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+const getCurrencySymbol = (currency: string) => {
+  if (currency === "INR") return "₹";
+  if (currency === "GBP") return "£";
+  if (currency === "EUR") return "€";
+  if (currency === "JPY") return "¥";
+  return "$";
+};
+
 export default function ScreenerPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -148,7 +156,9 @@ export default function ScreenerPage() {
                   <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-mono border-t border-white/5 pt-3">
                     <div className="bg-black/20 p-2 rounded-lg">
                       <span className="text-neutral/70 block mb-0.5">Price</span>
-                      <span className="font-bold text-foreground">${comp.current_price.toFixed(2)}</span>
+                      <span className="font-bold text-foreground">
+                        {getCurrencySymbol(comp.currency)}{comp.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                     </div>
                     <div className="bg-black/20 p-2 rounded-lg">
                       <span className="text-neutral/70 block mb-0.5">F-Score</span>
