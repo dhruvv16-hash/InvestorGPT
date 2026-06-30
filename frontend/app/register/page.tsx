@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Loader2, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, TrendingUp } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -71,7 +71,9 @@ export default function RegisterPage() {
         <div className="text-center space-y-2">
           {/* Logo */}
           <div className="inline-flex w-10 h-10 rounded-xl premium-logo-glow items-center justify-center font-bold text-white font-mono shadow-lg shadow-blue-500/20 mb-2">
-            <div className="premium-logo-glow-inner">I</div>
+            <div className="premium-logo-glow-inner">
+              <TrendingUp className="w-5.5 h-5.5 text-accent animate-pulse" />
+            </div>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
             Join <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">InvestorGPT</span>

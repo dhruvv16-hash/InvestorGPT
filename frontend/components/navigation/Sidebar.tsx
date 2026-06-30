@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Home, Search, Activity, Scale, Briefcase, BarChart3, 
-  Newspaper, History, Settings, Sparkles, Menu, X, Bell, Award, Compass 
+  Newspaper, History, Settings, Sparkles, Menu, X, Bell, Award, Compass, TrendingUp
 } from "lucide-react";
 
 
@@ -84,7 +84,9 @@ export default function Sidebar() {
         <div className={`p-4 border-b border-white/5 flex items-center justify-between ${isCollapsed ? "lg:justify-center" : ""}`}>
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-8 h-8 rounded-xl premium-logo-glow flex items-center justify-center font-bold text-white font-mono shadow-lg shadow-blue-500/20 shrink-0">
-              <div className="premium-logo-glow-inner">I</div>
+              <div className="premium-logo-glow-inner">
+                <TrendingUp className="w-4.5 h-4.5 text-accent animate-pulse" />
+              </div>
             </div>
             {!isCollapsed && (
               <div className="animate-fade-in">
