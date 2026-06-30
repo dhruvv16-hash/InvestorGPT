@@ -22,11 +22,34 @@ class Company(Base):
 
     analyses: Mapped[list["Analysis"]] = relationship(back_populates="company", cascade="all, delete-orphan")
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    analyses: Mapped[list["Analysis"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    session_tokens: Mapped[list["SessionToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+class SessionToken(Base):
+    __tablename__ = "session_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    token: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user: Mapped["User"] = relationship(back_populates="session_tokens")
+
 class Analysis(Base):
     __tablename__ = "analyses"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id"), nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     state: Mapped[str] = mapped_column(String(40), default="CREATED")  # CREATED, RESOLVING_COMPANY, FETCHING_DATA, VERIFYING_DATA, NORMALIZING, RUNNING_ENGINES, CONSENSUS, REVIEW, REPORT_GENERATION, COMPLETED, FAILED
     version: Mapped[int] = mapped_column(Integer, default=1)
     recommendation: Mapped[str | None] = mapped_column(String(20))
@@ -35,6 +58,7 @@ class Analysis(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     company: Mapped["Company"] = relationship(back_populates="analyses")
+    user: Mapped["User | None"] = relationship(back_populates="analyses")
     financials: Mapped[list["Financial"]] = relationship(back_populates="analysis", cascade="all, delete-orphan")
     technical_data: Mapped[list["TechnicalData"]] = relationship(back_populates="analysis", cascade="all, delete-orphan")
     valuation_results: Mapped[list["ValuationResult"]] = relationship(back_populates="analysis", cascade="all, delete-orphan")

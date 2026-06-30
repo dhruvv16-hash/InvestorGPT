@@ -23,9 +23,15 @@ class HoldingAddRequest(BaseModel):
     shares: float
     price: float
 
+from app.dependencies import get_current_user
+from app.models.models import User
+
 @router.get("")
-def get_portfolio(user_id: str, db: Session = Depends(get_db)):
-    holdings = db.query(PortfolioHolding).filter(PortfolioHolding.user_id == user_id).all()
+def get_portfolio(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    holdings = db.query(PortfolioHolding).filter(PortfolioHolding.user_id == current_user.id).all()
     
     total_cost = 0.0
     total_value = 0.0
@@ -90,13 +96,17 @@ def get_portfolio(user_id: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/add")
-def add_holding(req: HoldingAddRequest, db: Session = Depends(get_db)):
+def add_holding(
+    req: HoldingAddRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     ticker = req.ticker.upper().strip()
     if not ticker or req.shares <= 0 or req.price <= 0:
         raise HTTPException(status_code=400, detail="Invalid shares or buy price.")
         
     existing = db.query(PortfolioHolding).filter(
-        PortfolioHolding.user_id == req.user_id,
+        PortfolioHolding.user_id == current_user.id,
         PortfolioHolding.ticker == ticker
     ).first()
     
@@ -115,7 +125,7 @@ def add_holding(req: HoldingAddRequest, db: Session = Depends(get_db)):
         return {"status": "success", "action": "updated", "id": existing.id}
     else:
         new_h = PortfolioHolding(
-            user_id=req.user_id,
+            user_id=current_user.id,
             ticker=ticker,
             shares=req.shares,
             avg_buy_price=req.price
@@ -126,17 +136,27 @@ def add_holding(req: HoldingAddRequest, db: Session = Depends(get_db)):
         return {"status": "success", "action": "created", "id": new_h.id}
 
 @router.delete("/remove/{holding_id}")
-def remove_holding(holding_id: str, db: Session = Depends(get_db)):
-    holding = db.query(PortfolioHolding).filter(PortfolioHolding.id == holding_id).first()
+def remove_holding(
+    holding_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    holding = db.query(PortfolioHolding).filter(
+        PortfolioHolding.id == holding_id,
+        PortfolioHolding.user_id == current_user.id
+    ).first()
     if not holding:
-        raise HTTPException(status_code=404, detail="Holding not found.")
+        raise HTTPException(status_code=404, detail="Holding not found or not owned by user.")
     db.delete(holding)
     db.commit()
     return {"status": "success"}
 
 @router.get("/export/excel")
-def export_portfolio_excel(user_id: str, db: Session = Depends(get_db)):
-    data = get_portfolio(user_id, db)
+def export_portfolio_excel(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    data = get_portfolio(current_user, db)
     holdings = data["holdings"]
     summary = data["summary"]
     
@@ -147,7 +167,7 @@ def export_portfolio_excel(user_id: str, db: Session = Depends(get_db)):
     # Title
     ws["A1"] = "InvestorGPT Portfolio Holdings Report"
     ws["A1"].font = Font(name="Calibri", size=14, bold=True)
-    ws["A2"] = f"User Session: {user_id}"
+    ws["A2"] = f"User: {current_user.username}"
     ws["A2"].font = Font(name="Calibri", size=10, italic=True)
     
     # Headers
@@ -242,8 +262,11 @@ def export_portfolio_excel(user_id: str, db: Session = Depends(get_db)):
     )
 
 @router.get("/export/pdf")
-def export_portfolio_pdf(user_id: str, db: Session = Depends(get_db)):
-    data = get_portfolio(user_id, db)
+def export_portfolio_pdf(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    data = get_portfolio(current_user, db)
     holdings = data["holdings"]
     summary = data["summary"]
     
@@ -279,7 +302,7 @@ def export_portfolio_pdf(user_id: str, db: Session = Depends(get_db)):
     )
     
     story.append(Paragraph("InvestorGPT Portfolio Holdings Report", title_style))
-    story.append(Paragraph(f"User Session ID: {user_id}", subtitle_style))
+    story.append(Paragraph(f"User: {current_user.username}", subtitle_style))
     story.append(Spacer(1, 10))
     
     # Table data
@@ -344,11 +367,12 @@ def export_portfolio_pdf(user_id: str, db: Session = Depends(get_db)):
         headers=headers_resp
     )
 
-
 @router.get("/optimize")
-async def optimize_portfolio_holdings(user_id: str, db: Session = Depends(get_db)):
-    # Retrieve holdings using existing helper logic
-    data = get_portfolio(user_id, db)
+async def optimize_portfolio_holdings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    data = get_portfolio(current_user, db)
     holdings = data.get("holdings", [])
     if not holdings:
         raise HTTPException(status_code=400, detail="Cannot optimize an empty portfolio. Please add holdings first.")

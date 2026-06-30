@@ -1,17 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.db import get_db
-from app.models.models import Analysis, Company
+from app.models.models import Analysis, Company, User
+from app.dependencies import get_current_user
 import logging
 
 logger = logging.getLogger("investorgpt.routes_history")
 router = APIRouter(prefix="/research-history", tags=["Research History"])
 
 @router.get("")
-def get_research_history(user_id: str, db: Session = Depends(get_db)):
-    # We query all completed analyses joined with company details
+def get_research_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Filter completed analyses by the current user's ID
     analyses = db.query(Analysis).join(Company).filter(
-        Analysis.state == "COMPLETED"
+        Analysis.state == "COMPLETED",
+        Analysis.user_id == current_user.id
     ).order_by(Analysis.created_at.desc()).all()
     
     results = []
@@ -28,10 +33,17 @@ def get_research_history(user_id: str, db: Session = Depends(get_db)):
     return {"history": results}
 
 @router.delete("/{analysis_id}")
-def delete_research_history(analysis_id: str, db: Session = Depends(get_db)):
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+def delete_research_history(
+    analysis_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    analysis = db.query(Analysis).filter(
+        Analysis.id == analysis_id,
+        Analysis.user_id == current_user.id
+    ).first()
     if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis record not found.")
+        raise HTTPException(status_code=404, detail="Analysis record not found or not owned by user.")
     
     db.delete(analysis)
     db.commit()

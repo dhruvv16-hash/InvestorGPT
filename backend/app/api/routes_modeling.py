@@ -12,7 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 from app.database.db import get_db
-from app.models.models import FinancialModel, Company
+from app.models.models import FinancialModel, Company, User
+from app.dependencies import get_current_user
 from app.providers.market.yahoo_provider import YahooProvider
 from app.engines.macro_engine import MacroEngine
 from app.engines.valuation.reviewer_engine import ReviewerEngine
@@ -50,10 +51,14 @@ async def fetch_historical_financials(ticker: str) -> dict[str, Any]:
 
 # 1. GET Workspace list
 @router.get("/workspace")
-def get_workspace(ticker: str, user_id: str, db: Session = Depends(get_db)):
+def get_workspace(
+    ticker: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     models = db.query(FinancialModel).filter(
         FinancialModel.ticker == ticker.upper(),
-        FinancialModel.user_id == user_id
+        FinancialModel.user_id == current_user.id
     ).order_by(FinancialModel.timestamp.desc()).all()
     
     results = []
@@ -71,7 +76,7 @@ def get_workspace(ticker: str, user_id: str, db: Session = Depends(get_db)):
 async def get_model_projections(
     model_id: str,
     ticker: str = Query(...),
-    user_id: str = Query(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     # Retrieve historical data
@@ -214,7 +219,7 @@ async def get_model_projections(
     # Generate Fair Value Tracker from saved models history
     tracker_models = db.query(FinancialModel).filter(
         FinancialModel.ticker == ticker.upper(),
-        FinancialModel.user_id == user_id
+        FinancialModel.user_id == current_user.id
     ).order_by(FinancialModel.timestamp.asc()).all()
     
     tracker_timeline = []
@@ -317,10 +322,14 @@ async def get_model_projections(
 
 # 3. POST Save Model
 @router.post("/save")
-def save_model(req: ModelSaveRequest, db: Session = Depends(get_db)):
+def save_model(
+    req: ModelSaveRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     existing = db.query(FinancialModel).filter(
         FinancialModel.ticker == req.ticker.upper(),
-        FinancialModel.user_id == req.user_id,
+        FinancialModel.user_id == current_user.id,
         FinancialModel.name == req.name
     ).first()
     
@@ -332,7 +341,7 @@ def save_model(req: ModelSaveRequest, db: Session = Depends(get_db)):
     
     new_m = FinancialModel(
         ticker=req.ticker.upper(),
-        user_id=req.user_id,
+        user_id=current_user.id,
         name=req.name,
         assumptions=req.assumptions
     )
@@ -461,11 +470,11 @@ async def chat_modeling_assistant(req: AIChatRequest):
 async def export_excel(
     model_id: str,
     ticker: str = Query(...),
-    user_id: str = Query(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     # Fetch model projections
-    projections = await get_model_projections(model_id, ticker, user_id, db)
+    projections = await get_model_projections(model_id, ticker, current_user, db)
     
     # Generate openpyxl workbook
     wb = Workbook()
@@ -647,11 +656,11 @@ async def export_excel(
 async def export_pdf(
     model_id: str,
     ticker: str = Query(...),
-    user_id: str = Query(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     # Fetch model projections
-    projections = await get_model_projections(model_id, ticker, user_id, db)
+    projections = await get_model_projections(model_id, ticker, current_user, db)
     
     output = io.BytesIO()
     from reportlab.lib.pagesizes import letter, landscape
@@ -690,7 +699,7 @@ async def export_pdf(
     )
     
     story.append(Paragraph(f"{ticker.upper()} Financial Projections Sheet", title_style))
-    story.append(Paragraph(f"Model ID: {model_id} | User: {user_id}", subtitle_style))
+    story.append(Paragraph(f"Model ID: {model_id} | User: {current_user.username}", subtitle_style))
     story.append(Spacer(1, 10))
     
     hist_years = projections["hist_years"]

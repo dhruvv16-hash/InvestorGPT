@@ -14,12 +14,17 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [username, setUsername] = useState("Premium User");
 
   // Load preferences from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("sidebar_collapsed");
     if (saved === "true") {
       setIsCollapsed(true);
+    }
+    const savedUsername = localStorage.getItem("investorgpt_username");
+    if (savedUsername) {
+      setUsername(savedUsername);
     }
 
     // Set up mobile drawer event listener
@@ -150,8 +155,9 @@ export default function Sidebar() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-white/5 bg-white/[0.01]">
-          <div className={`flex items-center gap-3 p-2 rounded-xl border border-accent/15 premium-gradient-card ${
+        <div className="p-3 border-t border-white/5 bg-[#0a0b0e] space-y-2">
+          {/* Premium Status */}
+          <div className={`flex items-center gap-3 p-2 rounded-xl border border-accent/10 premium-gradient-card ${
             isCollapsed ? "lg:justify-center" : ""
           }`}>
             <Sparkles className="w-4.5 h-4.5 text-accent shrink-0 animate-pulse" />
@@ -160,6 +166,42 @@ export default function Sidebar() {
                 <h4 className="text-[10px] font-bold text-foreground">Premium Active</h4>
                 <p className="text-[8px] text-neutral/50 font-mono">Institutional Tier</p>
               </div>
+            )}
+          </div>
+
+          {/* User Profile & Logout */}
+          <div className={`flex items-center gap-2.5 p-2 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl transition-all ${
+            isCollapsed ? "lg:justify-center" : "justify-between"
+          }`}>
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="w-6.5 h-6.5 rounded-lg bg-accent/20 border border-accent/30 text-accent font-bold text-xs flex items-center justify-center font-mono uppercase shrink-0">
+                {username.substring(0, 2)}
+              </div>
+              {!isCollapsed && (
+                <div className="truncate">
+                  <h4 className="text-[10px] font-bold text-white leading-tight truncate">{username}</h4>
+                  <span className="text-[7.5px] text-neutral/40 font-mono uppercase tracking-wider block">ID: Active</span>
+                </div>
+              )}
+            </div>
+            {!isCollapsed && (
+              <button
+                onClick={() => {
+                  const token = localStorage.getItem("investorgpt_token");
+                  if (token) {
+                    fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/logout?token=${token}`, { method: "POST" });
+                  }
+                  localStorage.removeItem("investorgpt_token");
+                  localStorage.removeItem("investorgpt_user_id");
+                  localStorage.removeItem("investorgpt_username");
+                  window.dispatchEvent(new Event("auth-state-change"));
+                  window.location.href = "/login";
+                }}
+                className="text-[9px] hover:text-rose-400 text-neutral/40 font-bold uppercase transition-colors shrink-0 cursor-pointer"
+                title="Log Out"
+              >
+                Exit
+              </button>
             )}
           </div>
         </div>

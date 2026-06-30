@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.db import get_db
-from app.dependencies import get_event_bus
+from app.dependencies import get_event_bus, get_current_user
 from app.orchestration.event_bus import EventBus
 from app.orchestration.workflow_orchestrator import WorkflowOrchestrator
 from app.schemas.schemas import AnalyzeRequest, AnalyzeResponse, AnalysisDetailResponse
-from app.models.models import Analysis, Company, Financial, TechnicalData, ValuationResult
+from app.models.models import Analysis, Company, Financial, TechnicalData, ValuationResult, User
 
 router = APIRouter(tags=["Analysis"])
 
 @router.post("/analyze", response_model=AnalyzeResponse, status_code=status.HTTP_202_ACCEPTED)
 async def start_analysis(
     req: AnalyzeRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     event_bus: EventBus = Depends(get_event_bus)
 ):
@@ -19,8 +20,12 @@ async def start_analysis(
     try:
         analysis_id = await orchestrator.run_analysis(req.query)
         
-        # Query created analysis and company details
+        # Query created analysis and set user_id ownership
         analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+        if analysis:
+            analysis.user_id = current_user.id
+            db.commit()
+            
         company = db.query(Company).filter(Company.id == analysis.company_id).first()
 
         return AnalyzeResponse(
@@ -48,6 +53,7 @@ async def start_analysis(
 @router.get("/analyze/{analysis_id}", response_model=AnalysisDetailResponse)
 async def get_analysis_status(
     analysis_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
@@ -55,6 +61,12 @@ async def get_analysis_status(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Analysis with ID {analysis_id} not found"
+        )
+        
+    if analysis.user_id and analysis.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access to this analysis is restricted to the owner."
         )
     
     company = db.query(Company).filter(Company.id == analysis.company_id).first()

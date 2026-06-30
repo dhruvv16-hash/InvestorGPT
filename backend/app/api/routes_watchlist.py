@@ -9,15 +9,20 @@ from app.models.models import WatchlistTrigger, Company, Analysis, Financial, Te
 logger = logging.getLogger("investorgpt.routes_watchlist")
 router = APIRouter(prefix="/watchlist", tags=["Watchlist Intelligence"])
 
+from app.dependencies import get_current_user
+from app.models.models import User
+
 class WatchlistTriggerCreate(BaseModel):
-    user_id: str
     ticker: str
     trigger_type: str  # PRICE_BELOW, PRICE_ABOVE, DCF_GAP_PCT, RSI_BELOW
     threshold: float
 
 @router.get("")
-def get_watchlist(user_id: str, db: Session = Depends(get_db)):
-    triggers = db.query(WatchlistTrigger).filter(WatchlistTrigger.user_id == user_id).all()
+def get_watchlist(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    triggers = db.query(WatchlistTrigger).filter(WatchlistTrigger.user_id == current_user.id).all()
     
     # Process triggers and evaluate if they have fired
     # We fetch the latest market stats for each ticker to evaluate
@@ -114,14 +119,18 @@ def get_watchlist(user_id: str, db: Session = Depends(get_db)):
     return {"watchlist": watchlist_items}
 
 @router.post("/add")
-def add_watchlist_trigger(req: WatchlistTriggerCreate, db: Session = Depends(get_db)):
+def add_watchlist_trigger(
+    req: WatchlistTriggerCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     ticker = req.ticker.upper().strip()
     if not ticker or req.threshold <= 0:
         raise HTTPException(status_code=400, detail="Invalid ticker or threshold.")
         
     # Check if trigger already exists
     existing = db.query(WatchlistTrigger).filter(
-        WatchlistTrigger.user_id == req.user_id,
+        WatchlistTrigger.user_id == current_user.id,
         WatchlistTrigger.ticker == ticker,
         WatchlistTrigger.trigger_type == req.trigger_type,
         WatchlistTrigger.threshold == req.threshold
@@ -131,7 +140,7 @@ def add_watchlist_trigger(req: WatchlistTriggerCreate, db: Session = Depends(get
         return {"status": "already_exists", "id": existing.id}
         
     new_trigger = WatchlistTrigger(
-        user_id=req.user_id,
+        user_id=current_user.id,
         ticker=ticker,
         trigger_type=req.trigger_type,
         threshold=req.threshold,
@@ -144,10 +153,17 @@ def add_watchlist_trigger(req: WatchlistTriggerCreate, db: Session = Depends(get
     return {"status": "success", "id": new_trigger.id}
 
 @router.delete("/remove/{trigger_id}")
-def remove_watchlist_trigger(trigger_id: str, db: Session = Depends(get_db)):
-    trigger = db.query(WatchlistTrigger).filter(WatchlistTrigger.id == trigger_id).first()
+def remove_watchlist_trigger(
+    trigger_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trigger = db.query(WatchlistTrigger).filter(
+        WatchlistTrigger.id == trigger_id,
+        WatchlistTrigger.user_id == current_user.id
+    ).first()
     if not trigger:
-        raise HTTPException(status_code=404, detail="Watchlist trigger not found.")
+        raise HTTPException(status_code=404, detail="Watchlist trigger not found or not owned by user.")
     db.delete(trigger)
     db.commit()
     return {"status": "success"}

@@ -149,16 +149,20 @@ async def search_companies(
         
     return {"quotes": merged_quotes[:10]}
 
+from app.dependencies import get_current_user
+from app.models.models import Company, RecentSearch, SearchClickLog, User
+
 @router.post("/search/click", status_code=status.HTTP_200_OK)
 def log_search_click(
     req: SearchClickRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
         ticker = req.symbol.upper().strip()
         name = req.name.strip()
         exch = req.exchange.strip()
-        user_id = req.user_id.strip()
+        user_id = current_user.id
         
         if not ticker or not user_id:
             raise HTTPException(status_code=400, detail="Missing symbol or user_id")
@@ -212,12 +216,12 @@ def log_search_click(
 
 @router.get("/search/recent")
 def get_recent_searches(
-    user_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
         recents = db.query(RecentSearch).filter(
-            RecentSearch.user_id == user_id
+            RecentSearch.user_id == current_user.id
         ).order_by(RecentSearch.timestamp.desc()).limit(5).all()
         
         return {
@@ -235,11 +239,11 @@ def get_recent_searches(
 
 @router.delete("/search/recent")
 def clear_recent_searches(
-    user_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
-        db.query(RecentSearch).filter(RecentSearch.user_id == user_id).delete()
+        db.query(RecentSearch).filter(RecentSearch.user_id == current_user.id).delete()
         db.commit()
         return {"status": "success"}
     except Exception as e:

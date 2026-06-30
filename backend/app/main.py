@@ -60,6 +60,7 @@ from app.api.routes_screener import router as screener_router
 from app.api.routes_explainability import router as explainability_router
 from app.api.routes_backtest import router as backtest_router
 from app.api.routes_calibration import router as calibration_router
+from app.api.routes_auth import router as auth_router
 from app.api.routes_supply_chain import router as supply_chain_router
 from app.api.routes_strategy import router as strategy_router
 
@@ -67,8 +68,21 @@ from app.api.routes_strategy import router as strategy_router
 # Auto-create SQLite database tables if missing
 from app.database.db import engine, Base
 import app.models.models as models
+from sqlalchemy import text
 Base.metadata.create_all(bind=engine)
 
+# Programmatically check and add user_id column to analyses if missing
+try:
+    with engine.connect() as conn:
+        res = conn.execute(text("PRAGMA table_info(analyses)"))
+        columns = [row[1] for row in res.fetchall()]
+        if "user_id" not in columns:
+            conn.execute(text("ALTER TABLE analyses ADD COLUMN user_id VARCHAR(36)"))
+            conn.commit()
+except Exception as e:
+    logger.warning(f"Auto-migration user_id check failed: {e}")
+
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(analyze_router, prefix="/api/v1")
 app.include_router(compare_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
