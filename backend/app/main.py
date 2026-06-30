@@ -82,6 +82,77 @@ try:
 except Exception as e:
     logger.warning(f"Auto-migration user_id check failed: {e}")
 
+# Database Seeding: Populate popular stocks on startup if the database is clean
+try:
+    from app.database.db import SessionLocal
+    from app.models.models import Company
+    db_seed = SessionLocal()
+    if db_seed.query(Company).count() == 0:
+        logger.info("Database is empty, seeding popular equity symbols...")
+        seed_companies = [
+            Company(
+                ticker="AAPL",
+                exchange="NASDAQ",
+                country="United States",
+                currency="USD",
+                sector="Technology",
+                industry="Consumer Electronics",
+                name="Apple Inc.",
+                description="Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide.",
+                website="https://www.apple.com"
+            ),
+            Company(
+                ticker="NVDA",
+                exchange="NASDAQ",
+                country="United States",
+                currency="USD",
+                sector="Technology",
+                industry="Semiconductors",
+                name="NVIDIA Corporation",
+                description="NVIDIA Corporation designs graphics processing units for the gaming and professional markets, as well as system on a chip units for the mobile computing and automotive market.",
+                website="https://www.nvidia.com"
+            ),
+            Company(
+                ticker="MSFT",
+                exchange="NASDAQ",
+                country="United States",
+                currency="USD",
+                sector="Technology",
+                industry="Software - Infrastructure",
+                name="Microsoft Corporation",
+                description="Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide.",
+                website="https://www.microsoft.com"
+            ),
+            Company(
+                ticker="TSLA",
+                exchange="NASDAQ",
+                country="United States",
+                currency="USD",
+                sector="Consumer Discretionary",
+                industry="Auto Manufacturers",
+                name="Tesla, Inc.",
+                description="Tesla, Inc. designs, develops, manufactures, sells, and leases fully electric vehicles, energy generation and storage systems, and offers services related to its products.",
+                website="https://www.tesla.com"
+            ),
+            Company(
+                ticker="RELIANCE.NS",
+                exchange="NSE",
+                country="India",
+                currency="INR",
+                sector="Energy",
+                industry="Oil & Gas",
+                name="Reliance Industries Limited",
+                description="Reliance Industries Limited engages in hydrocarbon exploration and production, petroleum refining and marketing, petrochemicals, retail, and digital services in India and internationally.",
+                website="https://www.ril.com"
+            )
+        ]
+        db_seed.add_all(seed_companies)
+        db_seed.commit()
+        logger.info("Successfully seeded 5 benchmark companies into database.")
+    db_seed.close()
+except Exception as e:
+    logger.warning(f"Database seeding failed: {e}")
+
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(analyze_router, prefix="/api/v1")
 app.include_router(compare_router, prefix="/api/v1")
