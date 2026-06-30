@@ -87,68 +87,51 @@ try:
     from app.database.db import SessionLocal
     from app.models.models import Company
     db_seed = SessionLocal()
-    if db_seed.query(Company).count() == 0:
-        logger.info("Database is empty, seeding popular equity symbols...")
-        seed_companies = [
-            Company(
-                ticker="AAPL",
-                exchange="NASDAQ",
-                country="United States",
-                currency="USD",
-                sector="Technology",
-                industry="Consumer Electronics",
-                name="Apple Inc.",
-                description="Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide.",
-                website="https://www.apple.com"
-            ),
-            Company(
-                ticker="NVDA",
-                exchange="NASDAQ",
-                country="United States",
-                currency="USD",
-                sector="Technology",
-                industry="Semiconductors",
-                name="NVIDIA Corporation",
-                description="NVIDIA Corporation designs graphics processing units for the gaming and professional markets, as well as system on a chip units for the mobile computing and automotive market.",
-                website="https://www.nvidia.com"
-            ),
-            Company(
-                ticker="MSFT",
-                exchange="NASDAQ",
-                country="United States",
-                currency="USD",
-                sector="Technology",
-                industry="Software - Infrastructure",
-                name="Microsoft Corporation",
-                description="Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide.",
-                website="https://www.microsoft.com"
-            ),
-            Company(
-                ticker="TSLA",
-                exchange="NASDAQ",
-                country="United States",
-                currency="USD",
-                sector="Consumer Discretionary",
-                industry="Auto Manufacturers",
-                name="Tesla, Inc.",
-                description="Tesla, Inc. designs, develops, manufactures, sells, and leases fully electric vehicles, energy generation and storage systems, and offers services related to its products.",
-                website="https://www.tesla.com"
-            ),
-            Company(
-                ticker="RELIANCE.NS",
-                exchange="NSE",
-                country="India",
-                currency="INR",
-                sector="Energy",
-                industry="Oil & Gas",
-                name="Reliance Industries Limited",
-                description="Reliance Industries Limited engages in hydrocarbon exploration and production, petroleum refining and marketing, petrochemicals, retail, and digital services in India and internationally.",
-                website="https://www.ril.com"
-            )
-        ]
-        db_seed.add_all(seed_companies)
+    
+    seed_companies = [
+        Company(ticker="AAPL", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Consumer Electronics", name="Apple Inc.", description="Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide.", website="https://www.apple.com"),
+        Company(ticker="NVDA", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Semiconductors", name="NVIDIA Corporation", description="NVIDIA Corporation designs graphics processing units for the gaming and professional markets, as well as system on a chip units.", website="https://www.nvidia.com"),
+        Company(ticker="MSFT", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Software - Infrastructure", name="Microsoft Corporation", description="Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide.", website="https://www.microsoft.com"),
+        Company(ticker="TSLA", exchange="NASDAQ", country="United States", currency="USD", sector="Consumer Discretionary", industry="Auto Manufacturers", name="Tesla, Inc.", description="Tesla, Inc. designs, develops, manufactures, sells, and leases fully electric vehicles, energy generation and storage systems.", website="https://www.tesla.com"),
+        Company(ticker="RELIANCE.NS", exchange="NSE", country="India", currency="INR", sector="Energy", industry="Oil & Gas", name="Reliance Industries Limited", description="Reliance Industries Limited engages in hydrocarbon exploration and production, refining, retail, and digital services.", website="https://www.ril.com"),
+        Company(ticker="AMZN", exchange="NASDAQ", country="United States", currency="USD", sector="Consumer Discretionary", industry="Internet Retail", name="Amazon.com, Inc.", description="Amazon.com, Inc. engages in the retail sale of consumer products and services globally.", website="https://www.amazon.com"),
+        Company(ticker="GOOGL", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Internet Content & Information", name="Alphabet Inc.", description="Alphabet Inc. offers search, ads, maps, YouTube, Google Play, Cloud, and other hardware products.", website="https://www.google.com"),
+        Company(ticker="META", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Internet Content & Information", name="Meta Platforms, Inc.", description="Meta Platforms, Inc. focuses on building products that enable people to connect and share.", website="https://www.meta.com"),
+        Company(ticker="AMD", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Semiconductors", name="Advanced Micro Devices, Inc.", description="Advanced Micro Devices, Inc. operates as a semiconductor company worldwide.", website="https://www.amd.com"),
+        Company(ticker="TSM", exchange="NYSE", country="Taiwan", currency="USD", sector="Technology", industry="Semiconductors", name="Taiwan Semiconductor Manufacturing Company Limited", description="TSMC manufactures and sells integrated circuits and other semiconductor devices.", website="https://www.tsmc.com"),
+        Company(ticker="AVGO", exchange="NASDAQ", country="United States", currency="USD", sector="Technology", industry="Semiconductors", name="Broadcom Inc.", description="Broadcom Inc. designs, develops, and supplies semiconductor and infrastructure software solutions.", website="https://www.broadcom.com"),
+        Company(ticker="ASML", exchange="NASDAQ", country="Netherlands", currency="USD", sector="Technology", industry="Semiconductor Equipment & Materials", name="ASML Holding N.V.", description="ASML Holding N.V. develops, produces, markets, sells, and services advanced semiconductor equipment systems.", website="https://www.asml.com"),
+        Company(ticker="NFLX", exchange="NASDAQ", country="United States", currency="USD", sector="Consumer Discretionary", industry="Entertainment", name="Netflix, Inc.", description="Netflix, Inc. provides entertainment services with paid memberships in approximately 190 countries.", website="https://www.netflix.com"),
+        Company(ticker="JPM", exchange="NYSE", country="United States", currency="USD", sector="Financial Services", industry="Banks - Diversified", name="JPMorgan Chase & Co.", description="JPMorgan Chase & Co. operates as a financial services company worldwide.", website="https://www.jpmorganchase.com"),
+        Company(ticker="LLY", exchange="NYSE", country="United States", currency="USD", sector="Healthcare", industry="Drug Manufacturers - General", name="Eli Lilly and Company", description="Eli Lilly and Company discovers, develops, and markets human pharmaceuticals worldwide.", website="https://www.lilly.com"),
+        Company(ticker="WMT", exchange="NYSE", country="United States", currency="USD", sector="Consumer Defensive", industry="Discount Stores", name="Walmart Inc.", description="Walmart Inc. operates supercenters, supermarkets, hypermarkets, and warehouse clubs worldwide.", website="https://www.walmart.com"),
+        Company(ticker="XOM", exchange="NYSE", country="United States", currency="USD", sector="Energy", industry="Oil & Gas", name="Exxon Mobil Corporation", description="Exxon Mobil Corporation explores for, produces, and sells crude oil and natural gas.", website="https://www.exxonmobil.com"),
+        Company(ticker="JNJ", exchange="NYSE", country="United States", currency="USD", sector="Healthcare", industry="Drug Manufacturers - General", name="Johnson & Johnson", description="Johnson & Johnson researches and develops, manufactures, and sells various products in the healthcare field.", website="https://www.jnj.com"),
+        Company(ticker="V", exchange="NYSE", country="United States", currency="USD", sector="Financial Services", industry="Credit Services", name="Visa Inc.", description="Visa Inc. operates as a payments technology company worldwide.", website="https://www.visa.com"),
+        Company(ticker="PG", exchange="NYSE", country="United States", currency="USD", sector="Consumer Defensive", industry="Household & Personal Products", name="The Procter & Gamble Company", description="The Procter & Gamble Company provides branded consumer packaged goods worldwide.", website="https://www.pg.com"),
+        Company(ticker="INFY.NS", exchange="NSE", country="India", currency="INR", sector="Technology", industry="Information Technology Services", name="Infosys Limited", description="Infosys Limited provides consulting, technology, outsourcing, and next-generation digital services.", website="https://www.infosys.com"),
+        Company(ticker="TCS.NS", exchange="NSE", country="India", currency="INR", sector="Technology", industry="Information Technology Services", name="Tata Consultancy Services Limited", description="Tata Consultancy Services Limited provides information technology services and business solutions.", website="https://www.tcs.com"),
+        Company(ticker="HDFCBANK.NS", exchange="NSE", country="India", currency="INR", sector="Financial Services", industry="Banks - Regional", name="HDFC Bank Limited", description="HDFC Bank Limited provides banking and financial services to individuals and businesses in India.", website="https://www.hdfcbank.com"),
+        Company(ticker="ICICIBANK.NS", exchange="NSE", country="India", currency="INR", sector="Financial Services", industry="Banks - Regional", name="ICICI Bank Limited", description="ICICI Bank Limited provides banking products and financial services.", website="https://www.icicibank.com"),
+        Company(ticker="WIPRO.NS", exchange="NSE", country="India", currency="INR", sector="Technology", industry="Information Technology Services", name="Wipro Limited", description="Wipro Limited operates as an information technology, consulting, and business process services company.", website="https://www.wipro.com"),
+        Company(ticker="TATAMOTORS.NS", exchange="NSE", country="India", currency="INR", sector="Consumer Discretionary", industry="Auto Manufacturers", name="Tata Motors Limited", description="Tata Motors Limited designs, manufactures, and sells passenger cars, utility vehicles, and trucks.", website="https://www.tatamotors.com"),
+        Company(ticker="SBIN.NS", exchange="NSE", country="India", currency="INR", sector="Financial Services", industry="Banks - Regional", name="State Bank of India", description="State Bank of India provides banking and financial services in India and internationally.", website="https://www.sbi.co.in"),
+        Company(ticker="ITC.NS", exchange="NSE", country="India", currency="INR", sector="Consumer Defensive", industry="Tobacco", name="ITC Limited", description="ITC Limited manufactures and sells cigarettes, foods, packaging, and hotel services in India.", website="https://www.itcportal.com"),
+        Company(ticker="BHARTIARTL.NS", exchange="NSE", country="India", currency="INR", sector="Telecommunications", industry="Telecom Services", name="Bharti Airtel Limited", description="Bharti Airtel Limited operates as a telecommunications company in 18 countries.", website="https://www.airtel.in"),
+        Company(ticker="HINDUNILVR.NS", exchange="NSE", country="India", currency="INR", sector="Consumer Defensive", industry="Household & Personal Products", name="Hindustan Unilever Limited", description="Hindustan Unilever Limited manufactures and sells home care, personal care, and food products.", website="https://www.hul.co.in")
+    ]
+    
+    seeded_count = 0
+    for seed in seed_companies:
+        exists = db_seed.query(Company).filter(Company.ticker == seed.ticker).first()
+        if not exists:
+            db_seed.add(seed)
+            seeded_count += 1
+            
+    if seeded_count > 0:
         db_seed.commit()
-        logger.info("Successfully seeded 5 benchmark companies into database.")
+        logger.info(f"Successfully seeded {seeded_count} new benchmark companies into database.")
+    
     db_seed.close()
 except Exception as e:
     logger.warning(f"Database seeding failed: {e}")
