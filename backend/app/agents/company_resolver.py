@@ -148,23 +148,23 @@ class CompanyResolverAgent:
         return None
 
     async def _get_company_profile(self, ticker: str) -> dict[str, Any] | None:
-        """Fetch details from Yahoo to verify the company profile."""
+        """Fetch details from Yahoo to verify the company profile with timeout protection."""
         import yfinance as yf
         import asyncio
 
         loop = asyncio.get_event_loop()
         ticker_obj = yf.Ticker(ticker)
         
-        # yfinance info holds exchange, currency, country, sector, industry, longName
         try:
-            info = await loop.run_in_executor(None, lambda: ticker_obj.info)
+            info = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ticker_obj.info),
+                timeout=5.0
+            )
             name = info.get("longName") or info.get("shortName")
             has_price = any(k in info for k in ["regularMarketPrice", "currentPrice", "previousClose", "navPrice"])
             if not info or not name or not has_price:
-                # yfinance returns empty or stale info for invalid/inactive tickers
                 return None
 
-            # Determine exchange and country
             exchange = info.get("exchange") or "UNKNOWN"
             country = info.get("country") or "UNKNOWN"
             currency = info.get("currency") or "USD"
@@ -186,21 +186,26 @@ class CompanyResolverAgent:
                 "shares_outstanding": info.get("sharesOutstanding")
             }
         except Exception as e:
-            logger.warning(f"Failed to fetch profile for ticker {ticker}: {e}")
-            # Try a lightweight check if info fails
-            hist = await loop.run_in_executor(None, lambda: ticker_obj.history(period="1d"))
-            if not hist.empty:
-                return {
-                    "ticker": ticker,
-                    "exchange": "UNKNOWN",
-                    "country": "UNKNOWN",
-                    "currency": "USD",
-                    "sector": "UNKNOWN",
-                    "industry": "UNKNOWN",
-                    "name": ticker,
-                    "description": None,
-                    "website": None,
-                    "market_cap": None,
-                    "shares_outstanding": None
-                }
+            logger.warning(f"Failed to fetch profile for ticker {ticker}: {e}, trying lightweight check")
+            try:
+                hist = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: ticker_obj.history(period="1d")),
+                    timeout=5.0
+                )
+                if not hist.empty:
+                    return {
+                        "ticker": ticker,
+                        "exchange": "UNKNOWN",
+                        "country": "UNKNOWN",
+                        "currency": "USD",
+                        "sector": "UNKNOWN",
+                        "industry": "UNKNOWN",
+                        "name": ticker,
+                        "description": None,
+                        "website": None,
+                        "market_cap": None,
+                        "shares_outstanding": None
+                    }
+            except Exception:
+                pass
             return None

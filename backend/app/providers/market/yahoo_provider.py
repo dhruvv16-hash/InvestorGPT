@@ -12,18 +12,24 @@ class YahooProvider(MarketDataProvider):
     TRUST_SCORE = 96
 
     async def get_price(self, ticker: str) -> dict:
-        # Wrap blocking yfinance call in asyncio executor
+        # Wrap blocking yfinance call in asyncio executor with 5.0s timeout
         loop = asyncio.get_event_loop()
         try:
             ticker_obj = yf.Ticker(ticker)
-            info = await loop.run_in_executor(None, lambda: ticker_obj.info)
+            info = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ticker_obj.info),
+                timeout=5.0
+            )
             
             price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
             currency = info.get("currency") or "USD"
             
             if price is None:
                 # Try getting latest close from history if info failed
-                hist = await loop.run_in_executor(None, lambda: ticker_obj.history(period="1d"))
+                hist = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: ticker_obj.history(period="1d")),
+                    timeout=5.0
+                )
                 if not hist.empty:
                     price = float(hist["Close"].iloc[-1])
                 else:
@@ -65,10 +71,19 @@ class YahooProvider(MarketDataProvider):
         try:
             ticker_obj = yf.Ticker(ticker)
             
-            # Fetch dfs in executors
-            financials_df = await loop.run_in_executor(None, lambda: ticker_obj.financials)
-            balance_sheet_df = await loop.run_in_executor(None, lambda: ticker_obj.balance_sheet)
-            cashflow_df = await loop.run_in_executor(None, lambda: ticker_obj.cashflow)
+            # Fetch dfs in executors with a 5.0s timeout
+            financials_df = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ticker_obj.financials),
+                timeout=5.0
+            )
+            balance_sheet_df = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ticker_obj.balance_sheet),
+                timeout=5.0
+            )
+            cashflow_df = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ticker_obj.cashflow),
+                timeout=5.0
+            )
 
             if financials_df.empty or balance_sheet_df.empty or cashflow_df.empty:
                 logger.warning(f"Financial statements from Yahoo are incomplete for {ticker}")
@@ -185,7 +200,11 @@ class YahooProvider(MarketDataProvider):
             # Request enough history to satisfy limit
             period = "3mo" if timeframe in ["1h", "15m"] else "2y"
             
-            df = await loop.run_in_executor(None, lambda: ticker_obj.history(period=period, interval=interval))
+            # Execute with a 5.0s timeout to avoid indefinite hanging
+            df = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: ticker_obj.history(period=period, interval=interval)),
+                timeout=5.0
+            )
             if df.empty:
                 return self._get_synthetic_ohlcv(ticker, limit)
             
