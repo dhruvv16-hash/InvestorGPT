@@ -31,9 +31,12 @@ class PortfolioOptimizationEngine:
         
         for t in tickers:
             try:
-                # yfinance download wrapped in run_in_executor
+                # yfinance download wrapped in run_in_executor with a 5.0s timeout
                 ticker_obj = yf.Ticker(t)
-                hist = await loop.run_in_executor(None, lambda: ticker_obj.history(period="1y"))
+                hist = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: ticker_obj.history(period="1y")),
+                    timeout=5.0
+                )
                 if not hist.empty and "Close" in hist.columns:
                     price_data[t] = hist["Close"].tolist()
             except Exception as e:

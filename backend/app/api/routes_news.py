@@ -67,8 +67,17 @@ async def get_market_news(tickers: str = Query("MSFT,AAPL,NVDA,GOOGL")):
         try:
             news_items = await finnhub_provider.get_news(ticker, limit=5)
             if not news_items:
-                stock = yf.Ticker(ticker)
-                yf_news = stock.news or []
+                import asyncio
+                loop = asyncio.get_event_loop()
+                try:
+                    yf_news = await asyncio.wait_for(
+                        loop.run_in_executor(None, lambda: stock.news),
+                        timeout=5.0
+                    )
+                except Exception:
+                    yf_news = []
+                if not yf_news:
+                    yf_news = []
                 news_items = []
                 for item in yf_news[:5]:
                     title = item.get("title", "").strip()

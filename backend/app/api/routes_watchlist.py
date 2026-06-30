@@ -36,6 +36,7 @@ def get_watchlist(
         current_price = 0.0
         rsi = 50.0
         dcf_value = 0.0
+        z_score = 0.0
         
         if company:
             latest_analysis = (
@@ -52,6 +53,7 @@ def get_watchlist(
                 
                 current_price = next((float(f.value) for f in financials if f.metric_name == "current_price"), 0.0)
                 rsi = next((float(t_val.value) for t_val in techs if t_val.indicator_name == "RSI"), 50.0)
+                z_score = next((float(f.value) for f in financials if f.metric_name == "z_score"), 0.0)
                 dcf_obj = next((v for v in vals if v.model_name == "DCF"), None)
                 if dcf_obj and dcf_obj.fair_value is not None:
                     dcf_value = float(dcf_obj.fair_value)

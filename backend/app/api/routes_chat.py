@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database.db import get_db
-from app.models.models import Analysis, Company, Financial, ValuationResult, TechnicalData
+from app.models.models import Analysis, Company, Financial, ValuationResult, TechnicalData, User
+from app.dependencies import get_current_user
 
 router = APIRouter(tags=["Chat"])
 
@@ -27,6 +28,7 @@ class ChatRequest(BaseModel):
 async def chat_grounded_report(
     analysis_id: str,
     req: ChatRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
@@ -34,6 +36,12 @@ async def chat_grounded_report(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Analysis not found"
+        )
+        
+    if analysis.user_id and analysis.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access to this analysis is restricted to the owner."
         )
     
     company = db.query(Company).filter(Company.id == analysis.company_id).first()

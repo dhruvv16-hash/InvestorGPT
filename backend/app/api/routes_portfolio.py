@@ -118,11 +118,8 @@ async def get_portfolio(
         # Fetch current price dynamically (in native currency)
         current_price_native = avg_price_native
         try:
-            import yfinance as yf
-            stock = yf.Ticker(ticker)
-            history = stock.history(period="1d")
-            if not history.empty:
-                current_price_native = float(history["Close"].iloc[-1])
+            price_info = await provider.get_price(ticker)
+            current_price_native = price_info["price"]
         except Exception as e:
             logger.warning(f"Failed to fetch live price for {ticker}: {e}")
             
