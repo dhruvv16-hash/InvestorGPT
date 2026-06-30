@@ -52,7 +52,14 @@ class YahooProvider(MarketDataProvider):
             currency = "USD"
             if ticker.upper().endswith(".NS") or ticker.upper().endswith(".BO") or any(x in ticker.upper() for x in ["PW", "WALLAH", "PINELABS", "RELIANCE"]):
                 currency = "INR"
-            price = 75.0 if currency == "USD" else 750.0
+            
+            # Deterministic price hashing to avoid duplicate pricing for peers
+            import hashlib
+            import struct
+            val_hash = struct.unpack("I", hashlib.md5(ticker.encode("utf-8")).digest()[:4])[0]
+            base_price = 75.0 if currency == "USD" else 750.0
+            price = base_price * (0.6 + (val_hash % 80) / 100.0)
+            
             return {
                 "price": float(price),
                 "currency": currency,
@@ -165,27 +172,41 @@ class YahooProvider(MarketDataProvider):
 
     def _get_synthetic_financials(self, ticker: str) -> dict:
         logger.warning(f"Constructing premium synthetic financials fallback for {ticker}")
+        import hashlib
+        import struct
+        
+        # Use a deterministic hash of the ticker to perturb values
+        val_hash = struct.unpack("I", hashlib.md5(ticker.encode("utf-8")).digest()[:4])[0]
+        factor = 0.8 + (val_hash % 50) / 100.0 # multiplier between 0.8 and 1.3
+        
+        # Perturb margins
+        margin_f = 0.9 + (val_hash % 20) / 100.0 # multiplier between 0.9 and 1.1
+        
+        rev_base = 50000000.0 * factor
+        cogs_base = rev_base * 0.6 * margin_f
+        net_base = rev_base * 0.1 * (2.0 - margin_f)
+        
         return {
-            "revenue": {"2022": 45000000.0, "2023": 52000000.0, "2024": 61000000.0},
-            "cogs": {"2022": 27000000.0, "2023": 31200000.0, "2024": 36600000.0},
-            "net_income": {"2022": 4250000.0, "2023": 5180000.0, "2024": 6400000.0},
-            "operating_income": {"2022": 5500000.0, "2023": 6600000.0, "2024": 8100000.0},
-            "ebit": {"2022": 5500000.0, "2023": 6600000.0, "2024": 8100000.0},
-            "ebitda": {"2022": 6500000.0, "2023": 7800000.0, "2024": 9500000.0},
-            "current_assets": {"2022": 15000000.0, "2023": 18000000.0, "2024": 22000000.0},
-            "current_liabilities": {"2022": 8000000.0, "2023": 9000000.0, "2024": 11000000.0},
-            "inventory": {"2022": 3000000.0, "2023": 3500000.0, "2024": 4000000.0},
-            "total_assets": {"2022": 25000000.0, "2023": 30000000.0, "2024": 35000000.0},
-            "total_liabilities": {"2022": 11000000.0, "2023": 13000000.0, "2024": 15000000.0},
-            "shareholder_equity": {"2022": 14000000.0, "2023": 17000000.0, "2024": 20000000.0},
-            "long_term_debt": {"2022": 1000000.0, "2023": 900000.0, "2024": 800000.0},
-            "interest_expense": {"2022": 150000.0, "2023": 120000.0, "2024": 100000.0},
-            "operating_cash_flow": {"2022": 6000000.0, "2023": 7200000.0, "2024": 8500000.0},
-            "capital_expenditures": {"2022": -2000000.0, "2023": -2200000.0, "2024": -2500000.0},
-            "retained_earnings": {"2022": 5000000.0, "2023": 7000000.0, "2024": 10000000.0},
-            "diluted_eps": {"2022": 0.425, "2023": 0.518, "2024": 0.640},
-            "cash": {"2022": 8000000.0, "2023": 10000000.0, "2024": 12000000.0},
-            "working_capital": {"2022": 7000000.0, "2023": 9000000.0, "2024": 11000000.0}
+            "revenue": {"2022": rev_base * 0.75, "2023": rev_base * 0.85, "2024": rev_base},
+            "cogs": {"2022": cogs_base * 0.75, "2023": cogs_base * 0.85, "2024": cogs_base},
+            "net_income": {"2022": net_base * 0.7, "2023": net_base * 0.85, "2024": net_base},
+            "operating_income": {"2022": net_base * 1.1 * 0.7, "2023": net_base * 1.1 * 0.85, "2024": net_base * 1.1},
+            "ebit": {"2022": net_base * 1.1 * 0.7, "2023": net_base * 1.1 * 0.85, "2024": net_base * 1.1},
+            "ebitda": {"2022": net_base * 1.3 * 0.7, "2023": net_base * 1.3 * 0.85, "2024": net_base * 1.3},
+            "current_assets": {"2022": rev_base * 0.3, "2023": rev_base * 0.32, "2024": rev_base * 0.35},
+            "current_liabilities": {"2022": rev_base * 0.15, "2023": rev_base * 0.16, "2024": rev_base * 0.18},
+            "inventory": {"2022": rev_base * 0.05, "2023": rev_base * 0.06, "2024": rev_base * 0.07},
+            "total_assets": {"2022": rev_base * 0.5, "2023": rev_base * 0.55, "2024": rev_base * 0.6},
+            "total_liabilities": {"2022": rev_base * 0.2, "2023": rev_base * 0.22, "2024": rev_base * 0.25},
+            "shareholder_equity": {"2022": rev_base * 0.3, "2023": rev_base * 0.33, "2024": rev_base * 0.35},
+            "long_term_debt": {"2022": rev_base * 0.02, "2023": rev_base * 0.015, "2024": rev_base * 0.01},
+            "interest_expense": {"2022": rev_base * 0.003, "2023": rev_base * 0.002, "2024": rev_base * 0.001},
+            "operating_cash_flow": {"2022": net_base * 1.2 * 0.7, "2023": net_base * 1.2 * 0.85, "2024": net_base * 1.2},
+            "capital_expenditures": {"2022": -net_base * 0.4 * 0.7, "2023": -net_base * 0.4 * 0.85, "2024": -net_base * 0.4},
+            "retained_earnings": {"2022": rev_base * 0.1, "2023": rev_base * 0.14, "2024": rev_base * 0.18},
+            "diluted_eps": {"2022": (net_base * 0.7) / 100000000.0, "2023": (net_base * 0.85) / 100000000.0, "2024": net_base / 100000000.0},
+            "cash": {"2022": rev_base * 0.15, "2023": rev_base * 0.18, "2024": rev_base * 0.2},
+            "working_capital": {"2022": rev_base * 0.15, "2023": rev_base * 0.16, "2024": rev_base * 0.17}
         }
 
     async def get_ohlcv(self, ticker: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:

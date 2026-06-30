@@ -19,18 +19,36 @@ class CompetitorEngine:
         self.provider = YahooProvider()
 
     async def get_peers(self, ticker: str, industry: str) -> list[str]:
-        """Resolve a list of 3-4 peer symbols for a company."""
+        """Resolve a list of 3-4 peer symbols for a company, matching regional context."""
         cleaned_industry = industry.lower().strip()
+        ticker_upper = ticker.upper()
         
-        # Match industry to pre-defined peer groups
+        # 1. Indian company (.NS or .BO)
+        is_indian = ticker_upper.endswith(".NS") or ticker_upper.endswith(".BO") or "RELIANCE" in ticker_upper or "PINELABS" in ticker_upper
+        if is_indian:
+            if any(k in cleaned_industry for k in ["tech", "software", "information", "computer", "digital"]):
+                peers = ["TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS"]
+            elif any(k in cleaned_industry for k in ["bank", "financial", "credit", "finance", "invest"]):
+                peers = ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS"]
+            elif any(k in cleaned_industry for k in ["auto", "car", "vehicle", "manufactur"]):
+                peers = ["TATAMOTORS.NS", "MARUTI.NS", "M&M.NS"]
+            else:
+                peers = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS"]
+            return [p for p in peers if p.upper() != ticker_upper]
+
+        # 2. UK company (.L)
+        elif ticker_upper.endswith(".L"):
+            peers = ["BP.L", "AZN.L", "HSBA.L", "GSK.L"]
+            return [p for p in peers if p.upper() != ticker_upper]
+
+        # 3. Match US industry peer groups
         for key, peers in PEER_GROUPS.items():
             if key in cleaned_industry:
-                # Exclude the source company if it is in the peer group
-                return [p for p in peers if p.upper() != ticker.upper()]
+                return [p for p in peers if p.upper() != ticker_upper]
                 
         # Default peers if industry is not matched
         default_peers = ["AAPL", "MSFT", "GOOGL", "AMZN"]
-        return [p for p in default_peers if p.upper() != ticker.upper()]
+        return [p for p in default_peers if p.upper() != ticker_upper]
 
     async def get_peer_comparison(self, ticker: str, industry: str) -> list[dict[str, Any]]:
         """Fetch comparison metrics for peers."""
