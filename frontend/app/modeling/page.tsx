@@ -334,6 +334,7 @@ function ModelingLabContent() {
   // Trigger loads on mount or ticker change
   useEffect(() => {
     if (userId && ticker) {
+      setSelectedModelId("default");
       fetchModel("default");
       fetchWorkspace();
       fetchMacroSimulation(0.0, 75.0);
