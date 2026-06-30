@@ -43,17 +43,29 @@ finnhub_provider = FinnhubProvider()
 @router.get("")
 async def get_market_news(tickers: str = Query("MSFT,AAPL,NVDA,GOOGL")):
     ticker_list = [t.upper().strip() for t in tickers.split(",") if t.strip()]
-    if not ticker_list:
-        ticker_list = ["MSFT", "AAPL", "NVDA"]
-        
     articles = []
     
+    # 1. Always retrieve global real-time market news first
+    try:
+        gen_news = await finnhub_provider.get_general_news(limit=15)
+        for item in gen_news:
+            sentiment, score = classify_sentiment(item["title"] + " " + item.get("summary", ""))
+            articles.append({
+                "ticker": "MARKET",
+                "title": item["title"],
+                "publisher": item["publisher"],
+                "link": item["link"],
+                "timestamp": item["timestamp"],
+                "sentiment": sentiment,
+                "score": score
+            })
+    except Exception as e:
+        logger.warning(f"Failed to fetch general news: {e}")
+
+    # 2. Retrieve company-specific news
     for ticker in ticker_list:
         try:
-            # 1. Try Finnhub news provider first
             news_items = await finnhub_provider.get_news(ticker, limit=5)
-            
-            # 2. Fall back to yfinance if Finnhub returned empty (e.g. no key)
             if not news_items:
                 stock = yf.Ticker(ticker)
                 yf_news = stock.news or []
@@ -73,29 +85,16 @@ async def get_market_news(tickers: str = Query("MSFT,AAPL,NVDA,GOOGL")):
                     
             for item in news_items:
                 title = item.get("title", "").strip()
-                if not title:
+                if not title or any(a["title"] == title for a in articles):
                     continue
                 summary = item.get("summary", "") or title
-                publisher = item.get("publisher", "Unknown Publisher")
-                link = item.get("link", "#")
-                
-                import time
-                provider_publish_time = item.get("timestamp") or item.get("providerPublishTime") or 0
-                if not isinstance(provider_publish_time, (int, float)) or provider_publish_time < 10000000:
-                    provider_publish_time = int(time.time())
-                
-                # Check duplicate
-                if any(a["title"] == title for a in articles):
-                    continue
-                    
                 sentiment, score = classify_sentiment(title + " " + summary)
-                
                 articles.append({
                     "ticker": ticker,
                     "title": title,
-                    "publisher": publisher,
-                    "link": link,
-                    "timestamp": int(provider_publish_time),
+                    "publisher": item.get("publisher", "Unknown Publisher"),
+                    "link": item.get("link", "#"),
+                    "timestamp": int(item.get("timestamp", 0)),
                     "sentiment": sentiment,
                     "score": score
                 })

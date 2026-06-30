@@ -90,6 +90,68 @@ class FinnhubProvider(MarketDataProvider, NewsProvider):
             logger.warning(f"Failed to fetch Finnhub news for {ticker}: {e}")
         return []
 
+    async def get_general_news(self, limit: int = 20) -> list[dict]:
+        if not self.api_key:
+            return await self._get_yahoo_rss_news(limit)
+            
+        url = f"https://finnhub.io/api/v1/news?category=general&token={self.api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(url)
+                if res.status_code == 200:
+                    articles = []
+                    for item in res.json()[:limit]:
+                        articles.append({
+                            "ticker": "MARKET",
+                            "title": item.get("headline", ""),
+                            "summary": item.get("summary", ""),
+                            "publisher": item.get("source", "Finnhub"),
+                            "link": item.get("url", "#"),
+                            "timestamp": item.get("datetime", 0)
+                        })
+                    if articles:
+                        return articles
+        except Exception as e:
+            logger.warning(f"Failed to fetch Finnhub general news: {e}")
+            
+        return await self._get_yahoo_rss_news(limit)
+
+    async def _get_yahoo_rss_news(self, limit: int = 20) -> list[dict]:
+        import xml.etree.ElementTree as ET
+        import time
+        import email.utils
+        url = "https://news.google.com/rss/search?q=finance+stock+market&hl=en-US"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                res = await client.get(url)
+                if res.status_code == 200:
+                    root = ET.fromstring(res.content)
+                    articles = []
+                    for item in root.findall(".//item")[:limit]:
+                        title = item.find("title").text if item.find("title") is not None else ""
+                        link = item.find("link").text if item.find("link") is not None else "#"
+                        pubDate = item.find("pubDate").text if item.find("pubDate") is not None else ""
+                        source = item.find("source").text if item.find("source") is not None else "Google News"
+                        
+                        try:
+                            parsed_date = email.utils.parsedate_to_datetime(pubDate)
+                            timestamp = int(parsed_date.timestamp())
+                        except Exception:
+                            timestamp = int(time.time())
+                            
+                        articles.append({
+                            "ticker": "MARKET",
+                            "title": title,
+                            "summary": title,
+                            "publisher": source,
+                            "link": link,
+                            "timestamp": timestamp
+                        })
+                    return articles
+        except Exception as e:
+            logger.warning(f"Failed to fetch XML RSS news: {e}")
+        return []
+
     async def get_financial_statements(self, ticker: str, years: int = 10) -> dict:
         # Finnhub financials require premium tier for full statements; fall back to Yahoo
         return await self.yahoo_fallback.get_financial_statements(ticker, years)
