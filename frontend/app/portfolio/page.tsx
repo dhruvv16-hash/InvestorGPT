@@ -5,6 +5,7 @@ import {
   Briefcase, Save, Plus, Trash2, Loader2, RefreshCw, 
   TrendingUp, TrendingDown, ArrowRight, Activity, Percent
 } from "lucide-react";
+import { StockSearchInput } from "@/components/inputs/StockSearchInput";
 
 export default function PortfolioPage() {
   const [userId, setUserId] = useState("");
@@ -621,13 +622,11 @@ export default function PortfolioPage() {
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
                 <label className="text-neutral font-semibold">Stock Ticker Symbol</label>
-                <input
-                  type="text"
-                  required
+                <StockSearchInput
                   value={ticker}
-                  onChange={(e) => setTicker(e.target.value)}
+                  onChange={setTicker}
+                  onSelect={(sym) => setTicker(sym.toUpperCase())}
                   placeholder="e.g. AAPL, NVDA, RELIANCE.NS"
-                  className="w-full px-3 py-2 bg-black/40 border border-white/5 focus:border-accent/40 rounded-xl outline-none text-foreground font-mono uppercase"
                 />
               </div>
 
