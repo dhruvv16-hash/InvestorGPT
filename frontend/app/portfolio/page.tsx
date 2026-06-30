@@ -19,6 +19,9 @@ export default function PortfolioPage() {
     total_pnl_pct: 0
   });
 
+  const [preferredCurrency, setPreferredCurrency] = useState("USD");
+  const [currencySymbol, setCurrencySymbol] = useState("$");
+
   // Form State
   const [showAddModal, setShowAddModal] = useState(false);
   const [ticker, setTicker] = useState("");
@@ -66,13 +69,14 @@ export default function PortfolioPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio?user_id=${userId}`);
+      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio?preferred_currency=${preferredCurrency}&user_id=${userId}`);
       if (!res.ok) {
         throw new Error("Failed to load portfolio holdings.");
       }
       const json = await res.json();
       setHoldings(json.holdings || []);
       setSummary(json.summary || { total_cost: 0, total_value: 0, total_pnl: 0, total_pnl_pct: 0 });
+      setCurrencySymbol(json.currency_symbol || "$");
     } catch (err: any) {
       setError(err.message || "Failed to load holdings.");
     } finally {
@@ -82,14 +86,15 @@ export default function PortfolioPage() {
 
   const handleExport = (format: "pdf" | "excel") => {
     if (!userId) return;
-    window.open(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio/export/${format}?user_id=${userId}`);
+    const token = localStorage.getItem("investorgpt_token") || "";
+    window.open(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio/export/${format}?preferred_currency=${preferredCurrency}&token=${token}`);
   };
 
   useEffect(() => {
     if (userId) {
       fetchPortfolio();
     }
-  }, [userId]);
+  }, [userId, preferredCurrency]);
 
   useEffect(() => {
     if (showOptimizeTab && holdings.length >= 2) {
@@ -226,7 +231,23 @@ export default function PortfolioPage() {
           </p>
         </div>
 
-        <div className="flex gap-2 flex-wrap w-full md:w-auto">
+        <div className="flex gap-2 flex-wrap items-center w-full md:w-auto">
+          {/* Currency Switcher */}
+          <div className="flex items-center gap-1.5 px-3 py-2 border border-white/5 bg-white/[0.01] rounded-xl text-neutral">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral/40">Display:</span>
+            <select
+              value={preferredCurrency}
+              onChange={(e) => setPreferredCurrency(e.target.value)}
+              className="bg-transparent text-xs font-bold text-accent outline-none border-none cursor-pointer pr-1"
+            >
+              <option value="USD" className="bg-[#0b0c10] text-foreground">USD ($)</option>
+              <option value="INR" className="bg-[#0b0c10] text-foreground">INR (₹)</option>
+              <option value="EUR" className="bg-[#0b0c10] text-foreground">EUR (€)</option>
+              <option value="GBP" className="bg-[#0b0c10] text-foreground">GBP (£)</option>
+              <option value="JPY" className="bg-[#0b0c10] text-foreground">JPY (¥)</option>
+            </select>
+          </div>
+
           <button
             onClick={() => handleExport("pdf")}
             disabled={holdings.length === 0}
@@ -245,7 +266,7 @@ export default function PortfolioPage() {
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-accent hover:opacity-90 text-white font-bold text-xs rounded-xl flex items-center gap-2 cursor-pointer transition-all"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4.5 h-4.5" />
             <span>Add Transaction</span>
           </button>
         </div>
@@ -261,16 +282,16 @@ export default function PortfolioPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="glass-card p-5 space-y-1.5 border-l-2 border-accent">
           <span className="text-[10px] text-neutral uppercase font-bold tracking-wider">Portfolio Value</span>
-          <p className="text-xl font-mono font-bold text-foreground">${summary.total_value.toFixed(2)}</p>
+          <p className="text-xl font-mono font-bold text-foreground">{currencySymbol}{summary.total_value.toFixed(2)}</p>
         </div>
         <div className="glass-card p-5 space-y-1.5">
           <span className="text-[10px] text-neutral uppercase font-bold tracking-wider">Total Cost</span>
-          <p className="text-xl font-mono font-bold text-foreground">${summary.total_cost.toFixed(2)}</p>
+          <p className="text-xl font-mono font-bold text-foreground">{currencySymbol}{summary.total_cost.toFixed(2)}</p>
         </div>
         <div className="glass-card p-5 space-y-1.5">
           <span className="text-[10px] text-neutral uppercase font-bold tracking-wider">Total Gains / Loss</span>
           <p className={`text-xl font-mono font-bold ${summary.total_pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-            {summary.total_pnl >= 0 ? "+" : ""}${summary.total_pnl.toFixed(2)}
+            {summary.total_pnl >= 0 ? "+" : ""}{currencySymbol}{summary.total_pnl.toFixed(2)}
           </p>
         </div>
         <div className="glass-card p-5 space-y-1.5">
@@ -335,10 +356,38 @@ export default function PortfolioPage() {
                       <tr key={h.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                         <td className="py-3 pr-4 font-bold text-accent">{h.ticker}</td>
                         <td className="py-3 px-2 text-right">{h.shares.toFixed(2)}</td>
-                        <td className="py-3 px-2 text-right">${h.avg_buy_price.toFixed(2)}</td>
-                        <td className="py-3 px-2 text-right">${h.current_price.toFixed(2)}</td>
-                        <td className="py-3 px-2 text-right">${h.cost.toFixed(2)}</td>
-                        <td className="py-3 px-2 text-right">${h.value.toFixed(2)}</td>
+                        <td className="py-3 px-2 text-right">
+                          <div>{currencySymbol}{h.avg_buy_price.toFixed(2)}</div>
+                          {h.native_currency !== preferredCurrency && (
+                            <div className="text-[7.5px] text-neutral/40">
+                              {h.avg_buy_price_native.toFixed(2)} {h.native_currency}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <div>{currencySymbol}{h.current_price.toFixed(2)}</div>
+                          {h.native_currency !== preferredCurrency && (
+                            <div className="text-[7.5px] text-neutral/40">
+                              {h.current_price_native.toFixed(2)} {h.native_currency}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <div>{currencySymbol}{h.cost.toFixed(2)}</div>
+                          {h.native_currency !== preferredCurrency && (
+                            <div className="text-[7.5px] text-neutral/40">
+                              {(h.avg_buy_price_native * h.shares).toFixed(2)} {h.native_currency}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <div>{currencySymbol}{h.value.toFixed(2)}</div>
+                          {h.native_currency !== preferredCurrency && (
+                            <div className="text-[7.5px] text-neutral/40">
+                              {(h.current_price_native * h.shares).toFixed(2)} {h.native_currency}
+                            </div>
+                          )}
+                        </td>
                         <td className={`py-3 px-2 text-right font-bold ${h.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                           {h.pnl >= 0 ? "+" : ""}{h.pnl_pct.toFixed(1)}%
                         </td>
@@ -596,7 +645,18 @@ export default function PortfolioPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-neutral font-semibold">Average Buy Price ($)</label>
+                <label className="text-neutral font-semibold">
+                  Average Buy Price (
+                  {(() => {
+                    const t = ticker.toUpperCase().trim();
+                    if (t.endsWith(".NS") || t.endsWith(".BO") || t.includes("PW") || t.includes("WALLAH")) return "₹ INR";
+                    if (t.endsWith(".L")) return "£ GBP";
+                    if (t.endsWith(".PA") || t.endsWith(".DE")) return "€ EUR";
+                    if (t.endsWith(".T")) return "¥ JPY";
+                    return "$ USD";
+                  })()}
+                  )
+                </label>
                 <input
                   type="number"
                   required

@@ -9,10 +9,15 @@ import logging
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 import io
+import httpx
+import time
+from datetime import datetime, timezone
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from app.dependencies import get_current_user
+from app.models.models import User
 
 logger = logging.getLogger("investorgpt.routes_portfolio")
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
@@ -23,62 +28,132 @@ class HoldingAddRequest(BaseModel):
     shares: float
     price: float
 
-from app.dependencies import get_current_user
-from app.models.models import User
+EXCHANGE_CACHE = {}
+CACHE_EXPIRY = {}
+
+def get_ticker_currency(ticker: str) -> str:
+    t = ticker.upper().strip()
+    if t.endswith(".NS") or t.endswith(".BO") or "PW" in t or "WALLAH" in t:
+        return "INR"
+    if t.endswith(".L"):
+        return "GBP"
+    if t.endswith(".PA") or t.endswith(".DE"):
+        return "EUR"
+    if t.endswith(".T"):
+        return "JPY"
+    return "USD"
+
+async def get_exchange_rate(from_curr: str, to_curr: str) -> float:
+    from_curr = from_curr.upper().strip()
+    to_curr = to_curr.upper().strip()
+    if from_curr == to_curr:
+        return 1.0
+        
+    cache_key = f"{from_curr}_{to_curr}"
+    now = time.time()
+    if cache_key in EXCHANGE_CACHE and now - CACHE_EXPIRY.get(cache_key, 0) < 3600:
+        return EXCHANGE_CACHE[cache_key]
+        
+    try:
+        url = f"https://open.er-api.com/v6/latest/{from_curr}"
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            res = await client.get(url)
+            if res.status_code == 200:
+                data = res.json()
+                rates = data.get("rates", {})
+                rate = rates.get(to_curr)
+                if rate:
+                    val = float(rate)
+                    EXCHANGE_CACHE[cache_key] = val
+                    CACHE_EXPIRY[cache_key] = now
+                    # Cache the reverse too
+                    rev_key = f"{to_curr}_{from_curr}"
+                    EXCHANGE_CACHE[rev_key] = 1.0 / val
+                    CACHE_EXPIRY[rev_key] = now
+                    return val
+    except Exception as e:
+        logger.error(f"Failed to fetch exchange rate from {from_curr} to {to_curr}: {e}")
+        
+    fallbacks = {
+        ("USD", "INR"): 83.5,
+        ("INR", "USD"): 1.0 / 83.5,
+        ("USD", "EUR"): 0.92,
+        ("EUR", "USD"): 1.0 / 0.92,
+        ("USD", "GBP"): 0.79,
+        ("GBP", "USD"): 1.0 / 0.79
+    }
+    return fallbacks.get((from_curr, to_curr), 1.0)
+
+def get_currency_symbol(currency: str) -> str:
+    upper = currency.upper().strip()
+    if upper == "INR": return "₹"
+    if upper == "EUR": return "€"
+    if upper == "GBP": return "£"
+    if upper == "JPY": return "¥"
+    return "$"
 
 @router.get("")
-def get_portfolio(
+async def get_portfolio(
+    preferred_currency: str = Query("USD"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     holdings = db.query(PortfolioHolding).filter(PortfolioHolding.user_id == current_user.id).all()
+    pref_curr = preferred_currency.upper().strip()
     
     total_cost = 0.0
     total_value = 0.0
     
     holdings_data = []
-    
-    # Simple real-time price fetcher using Yahoo Finance
     provider = YahooProvider()
     
     for h in holdings:
-        ticker = h.ticker.upper()
+        ticker = h.ticker.upper().strip()
         shares = float(h.shares)
-        avg_price = float(h.avg_buy_price)
-        cost = avg_price * shares
-        total_cost += cost
         
-        # Fetch current price dynamically
-        current_price = avg_price # default fallback
+        # Native details
+        native_currency = get_ticker_currency(ticker)
+        avg_price_native = float(h.avg_buy_price)
+        
+        # Fetch current price dynamically (in native currency)
+        current_price_native = avg_price_native
         try:
-            # We can download current price
             import yfinance as yf
             stock = yf.Ticker(ticker)
             history = stock.history(period="1d")
             if not history.empty:
-                current_price = float(history["Close"].iloc[-1])
+                current_price_native = float(history["Close"].iloc[-1])
         except Exception as e:
             logger.warning(f"Failed to fetch live price for {ticker}: {e}")
             
-        val = current_price * shares
-        total_value += val
+        # Get conversion rate to preferred display currency
+        rate = await get_exchange_rate(native_currency, pref_curr)
         
-        pnl = val - cost
-        pnl_pct = (pnl / cost * 100.0) if cost > 0 else 0.0
+        # Calculate cost and value in preferred currency
+        cost_pref = avg_price_native * shares * rate
+        val_pref = current_price_native * shares * rate
+        
+        total_cost += cost_pref
+        total_value += val_pref
+        
+        pnl_pref = val_pref - cost_pref
+        pnl_pct = (pnl_pref / cost_pref * 100.0) if cost_pref > 0 else 0.0
         
         holdings_data.append({
             "id": h.id,
             "ticker": ticker,
             "shares": shares,
-            "avg_buy_price": avg_price,
-            "current_price": current_price,
-            "cost": cost,
-            "value": val,
-            "pnl": pnl,
+            "native_currency": native_currency,
+            "avg_buy_price": avg_price_native * rate,
+            "current_price": current_price_native * rate,
+            "avg_buy_price_native": avg_price_native,
+            "current_price_native": current_price_native,
+            "cost": cost_pref,
+            "value": val_pref,
+            "pnl": pnl_pref,
             "pnl_pct": pnl_pct
         })
         
-    # Calculate allocation weights
     for h_data in holdings_data:
         h_data["weight_pct"] = (h_data["value"] / total_value * 100.0) if total_value > 0 else 0.0
         
@@ -87,6 +162,8 @@ def get_portfolio(
     
     return {
         "holdings": holdings_data,
+        "preferred_currency": pref_curr,
+        "currency_symbol": get_currency_symbol(pref_curr),
         "summary": {
             "total_cost": total_cost,
             "total_value": total_value,
@@ -111,7 +188,6 @@ def add_holding(
     ).first()
     
     if existing:
-        # Accumulate holdings
         old_shares = float(existing.shares)
         old_avg = float(existing.avg_buy_price)
         
@@ -152,28 +228,29 @@ def remove_holding(
     return {"status": "success"}
 
 @router.get("/export/excel")
-def export_portfolio_excel(
+async def export_portfolio_excel(
+    preferred_currency: str = Query("USD"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    data = get_portfolio(current_user, db)
+    data = await get_portfolio(preferred_currency, current_user, db)
     holdings = data["holdings"]
     summary = data["summary"]
+    pref_curr = data["preferred_currency"]
+    sym = data["currency_symbol"]
     
     wb = Workbook()
     ws = wb.active
     ws.title = "Portfolio Holdings"
     
-    # Title
-    ws["A1"] = "InvestorGPT Portfolio Holdings Report"
+    ws["A1"] = f"InvestorGPT Portfolio Holdings Report ({pref_curr})"
     ws["A1"].font = Font(name="Calibri", size=14, bold=True)
-    ws["A2"] = f"User: {current_user.username}"
+    ws["A2"] = f"User: {current_user.username} | Display Currency: {pref_curr} ({sym})"
     ws["A2"].font = Font(name="Calibri", size=10, italic=True)
     
-    # Headers
     headers = [
         "Ticker", "Shares", "Avg Entry Price", "Current Price", 
-        "Total Cost", "Total Value", "Gain / Loss ($)", "Gain / Loss (%)", "Weight (%)"
+        f"Total Cost ({sym})", f"Total Value ({sym})", f"Gain / Loss ({sym})", "Gain / Loss (%)", "Weight (%)"
     ]
     header_fill = PatternFill(start_color="1F2937", end_color="1F2937", fill_type="solid")
     white_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
@@ -186,31 +263,31 @@ def export_portfolio_excel(
         cell.fill = header_fill
         cell.alignment = Alignment(horizontal="center" if col_idx > 0 else "left")
         
-    # Data Rows
+    num_fmt = f'"{sym}"#,##0.00'
+    
     row_num = 5
     for h in holdings:
         ws.cell(row=row_num, column=1, value=h["ticker"]).font = bold_font
         ws.cell(row=row_num, column=2, value=h["shares"]).font = normal_font
         
         c3 = ws.cell(row=row_num, column=3, value=h["avg_buy_price"])
-        c3.number_format = "$#,##0.00"
+        c3.number_format = num_fmt
         c3.font = normal_font
         
         c4 = ws.cell(row=row_num, column=4, value=h["current_price"])
-        c4.number_format = "$#,##0.00"
+        c4.number_format = num_fmt
         c4.font = normal_font
         
         c5 = ws.cell(row=row_num, column=5, value=h["cost"])
-        c5.number_format = "$#,##0.00"
+        c5.number_format = num_fmt
         c5.font = normal_font
         
         c6 = ws.cell(row=row_num, column=6, value=h["value"])
-        c6.number_format = "$#,##0.00"
+        c6.number_format = num_fmt
         c6.font = normal_font
         
-        # Pnl
         c7 = ws.cell(row=row_num, column=7, value=h["pnl"])
-        c7.number_format = "$#,##0.00"
+        c7.number_format = num_fmt
         c7.font = normal_font
         
         c8 = ws.cell(row=row_num, column=8, value=h["pnl_pct"] / 100.0)
@@ -223,22 +300,21 @@ def export_portfolio_excel(
         
         row_num += 1
         
-    # Totals Row
     ws.cell(row=row_num, column=1, value="TOTAL").font = bold_font
     ws.cell(row=row_num, column=2, value="").font = bold_font
     ws.cell(row=row_num, column=3, value="").font = bold_font
     ws.cell(row=row_num, column=4, value="").font = bold_font
     
     t_cost = ws.cell(row=row_num, column=5, value=summary["total_cost"])
-    t_cost.number_format = "$#,##0.00"
+    t_cost.number_format = num_fmt
     t_cost.font = bold_font
     
     t_val = ws.cell(row=row_num, column=6, value=summary["total_value"])
-    t_val.number_format = "$#,##0.00"
+    t_val.number_format = num_fmt
     t_val.font = bold_font
     
     t_pnl = ws.cell(row=row_num, column=7, value=summary["total_pnl"])
-    t_pnl.number_format = "$#,##0.00"
+    t_pnl.number_format = num_fmt
     t_pnl.font = bold_font
     
     t_pnl_pct = ws.cell(row=row_num, column=8, value=summary["total_pnl_pct"] / 100.0)
@@ -253,7 +329,7 @@ def export_portfolio_excel(
     output.seek(0)
     
     headers_resp = {
-        "Content-Disposition": "attachment; filename=portfolio_holdings_report.xlsx"
+        "Content-Disposition": f"attachment; filename=portfolio_report_{pref_curr.lower()}.xlsx"
     }
     return StreamingResponse(
         output,
@@ -262,13 +338,16 @@ def export_portfolio_excel(
     )
 
 @router.get("/export/pdf")
-def export_portfolio_pdf(
+async def export_portfolio_pdf(
+    preferred_currency: str = Query("USD"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    data = get_portfolio(current_user, db)
+    data = await get_portfolio(preferred_currency, current_user, db)
     holdings = data["holdings"]
     summary = data["summary"]
+    pref_curr = data["preferred_currency"]
+    sym = data["currency_symbol"]
     
     output = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -301,38 +380,36 @@ def export_portfolio_pdf(
         textColor=colors.HexColor("#4B5563")
     )
     
-    story.append(Paragraph("InvestorGPT Portfolio Holdings Report", title_style))
-    story.append(Paragraph(f"User: {current_user.username}", subtitle_style))
+    story.append(Paragraph(f"InvestorGPT Portfolio Holdings Report ({pref_curr})", title_style))
+    story.append(Paragraph(f"User: {current_user.username} | Display Currency: {pref_curr} ({sym})", subtitle_style))
     story.append(Spacer(1, 10))
     
-    # Table data
     table_content = [[
-        "Ticker", "Shares", "Avg Entry Price", "Current Price", 
-        "Total Cost", "Total Value", "Gain / Loss ($)", "Gain / Loss (%)", "Weight"
+        "Ticker", "Shares", "Avg Entry", "Current Price", 
+        f"Cost ({sym})", f"Value ({sym})", f"P&L ({sym})", "P&L (%)", "Weight"
     ]]
     
     for h in holdings:
         table_content.append([
             h["ticker"],
             f"{h['shares']:.2f}",
-            f"${h['avg_buy_price']:.2f}",
-            f"${h['current_price']:.2f}",
-            f"${h['cost']:.2f}",
-            f"${h['value']:.2f}",
-            f"${h['pnl']:.2f}",
+            f"{sym}{h['avg_buy_price']:.2f}",
+            f"{sym}{h['current_price']:.2f}",
+            f"{sym}{h['cost']:.2f}",
+            f"{sym}{h['value']:.2f}",
+            f"{sym}{h['pnl']:.2f}",
             f"{h['pnl_pct']:.1f}%",
             f"{h['weight_pct']:.1f}%"
         ])
         
-    # Totals row
     table_content.append([
         "TOTAL",
         "",
         "",
         "",
-        f"${summary['total_cost']:.2f}",
-        f"${summary['total_value']:.2f}",
-        f"${summary['total_pnl']:.2f}",
+        f"{sym}{summary['total_cost']:.2f}",
+        f"{sym}{summary['total_value']:.2f}",
+        f"{sym}{summary['total_pnl']:.2f}",
         f"{summary['total_pnl_pct']:.1f}%",
         "100.0%"
     ])
@@ -359,7 +436,7 @@ def export_portfolio_pdf(
     output.seek(0)
     
     headers_resp = {
-        "Content-Disposition": "attachment; filename=portfolio_holdings_report.pdf"
+        "Content-Disposition": f"attachment; filename=portfolio_report_{pref_curr.lower()}.pdf"
     }
     return StreamingResponse(
         output,
@@ -372,7 +449,7 @@ async def optimize_portfolio_holdings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    data = get_portfolio(current_user, db)
+    data = await get_portfolio("USD", current_user, db)
     holdings = data.get("holdings", [])
     if not holdings:
         raise HTTPException(status_code=400, detail="Cannot optimize an empty portfolio. Please add holdings first.")
@@ -381,4 +458,3 @@ async def optimize_portfolio_holdings(
     engine = PortfolioOptimizationEngine()
     result = await engine.optimize_portfolio(holdings)
     return result
-
