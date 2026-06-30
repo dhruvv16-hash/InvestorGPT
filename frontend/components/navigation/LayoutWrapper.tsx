@@ -28,12 +28,16 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       if (isBackendCall) {
         const token = localStorage.getItem("investorgpt_token");
         if (token) {
-          init = init || {};
-          const headers = new Headers(init.headers || {});
-          if (!headers.has("Authorization")) {
-            headers.set("Authorization", `Bearer ${token}`);
+          if (input instanceof Request) {
+            input.headers.set("Authorization", `Bearer ${token}`);
+          } else {
+            init = init || {};
+            const headers = new Headers(init.headers || {});
+            if (!headers.has("Authorization")) {
+              headers.set("Authorization", `Bearer ${token}`);
+            }
+            init.headers = headers;
           }
-          init.headers = headers;
         }
       }
       

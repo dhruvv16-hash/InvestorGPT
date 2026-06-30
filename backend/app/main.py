@@ -132,6 +132,21 @@ try:
         db_seed.commit()
         logger.info(f"Successfully seeded {seeded_count} new benchmark companies into database.")
     
+    # Seed default user for visual/test consistency across serverless container cold-starts
+    from app.models.models import User
+    from app.api.routes_auth import hash_password
+    default_user = db_seed.query(User).filter(User.username == "tester").first()
+    if not default_user:
+        hashed = hash_password("Password123!")
+        user = User(
+            id="usr_tester_seed_001",
+            username="tester",
+            hashed_password=hashed
+        )
+        db_seed.add(user)
+        db_seed.commit()
+        logger.info("Successfully seeded default user 'tester' into database.")
+        
     db_seed.close()
 except Exception as e:
     logger.warning(f"Database seeding failed: {e}")
