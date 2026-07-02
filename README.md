@@ -71,7 +71,7 @@ A sandbox environment for running economic stress tests and sensitivity analyses
 * **Three-Statement Models**: Dynamically recalculates income statements, balance sheets, and cash flows.
 * **DCF Sensitivity Grids**: Computes fair value matrices under varying growth and WACC conditions.
 
-![Financial Modeling Lab](docs/assets/macro_shock.png)
+![Financial Modeling Lab](docs/assets/financial_modeling.png)
 
 ---
 
