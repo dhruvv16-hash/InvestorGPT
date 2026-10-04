@@ -4,7 +4,7 @@ InvestorGPT is an advanced, multi-tenant investment research platform powered by
 
 ---
 
-## 🚀 Core Features & Interface Preview
+##  Core Features & Interface Preview
 
 ### 1. User Authentication & Multi-Tenant Security
 A secure access gateway that protects user data isolation across all platform tools.
@@ -75,7 +75,7 @@ A sandbox environment for running economic stress tests and sensitivity analyses
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+##  Tech Stack & Architecture
 
 ```mermaid
 graph TD
@@ -94,7 +94,7 @@ graph TD
 
 ---
 
-## ⚡ Setup & Local Installation
+##  Setup & Local Installation
 
 ### Prerequisites
 * Python 3.12+
