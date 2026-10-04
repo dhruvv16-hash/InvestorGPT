@@ -59,6 +59,9 @@ class YahooProvider(MarketDataProvider):
             val_hash = struct.unpack("I", hashlib.md5(ticker.encode("utf-8")).digest()[:4])[0]
             base_price = 75.0 if currency == "USD" else 750.0
             price = base_price * (0.6 + (val_hash % 80) / 100.0)
+            # ponytail: synthetic fallback shares=1B is safer than 100M but still wrong for large-caps.
+            # Real fix is ensuring Yahoo never fails (retry/cache), but 1B caps the DCF error to ~14x vs 145x.
+            synthetic_shares = 1_000_000_000.0
             
             return {
                 "price": float(price),
@@ -66,11 +69,12 @@ class YahooProvider(MarketDataProvider):
                 "as_of": datetime.now(timezone.utc),
                 "source": self.SOURCE_NAME,
                 "trust_score": self.TRUST_SCORE,
-                "shares_outstanding": 100000000.0,
-                "market_cap": price * 100000000.0,
+                "shares_outstanding": synthetic_shares,
+                "market_cap": price * synthetic_shares,
                 "sector": "Technology",
                 "industry": "Software - Infrastructure",
-                "name": ticker
+                "name": ticker,
+                "is_synthetic": True  # flag so orchestrator knows this data is not real
             }
 
     async def get_financial_statements(self, ticker: str, years: int = 10) -> dict:
@@ -187,6 +191,7 @@ class YahooProvider(MarketDataProvider):
         net_base = rev_base * 0.1 * (2.0 - margin_f)
         
         return {
+            "__is_synthetic__": True,  # sentinel: orchestrator should not run DCF on this data
             "revenue": {"2022": rev_base * 0.75, "2023": rev_base * 0.85, "2024": rev_base},
             "cogs": {"2022": cogs_base * 0.75, "2023": cogs_base * 0.85, "2024": cogs_base},
             "net_income": {"2022": net_base * 0.7, "2023": net_base * 0.85, "2024": net_base},

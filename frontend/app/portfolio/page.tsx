@@ -41,7 +41,7 @@ export default function PortfolioPage() {
     setLoadingOptimize(true);
     setErrorOptimize("");
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio/optimize?user_id=${userId}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/portfolio/optimize?user_id=${userId}`);
       if (!res.ok) {
         throw new Error("Failed to compute efficient frontier. Ensure all tickers are valid.");
       }
@@ -70,7 +70,7 @@ export default function PortfolioPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio?preferred_currency=${preferredCurrency}&user_id=${userId}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/portfolio?preferred_currency=${preferredCurrency}&user_id=${userId}`);
       if (!res.ok) {
         throw new Error("Failed to load portfolio holdings.");
       }
@@ -88,7 +88,7 @@ export default function PortfolioPage() {
   const handleExport = (format: "pdf" | "excel") => {
     if (!userId) return;
     const token = localStorage.getItem("investorgpt_token") || "";
-    window.open(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio/export/${format}?preferred_currency=${preferredCurrency}&token=${token}`);
+    window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/portfolio/export/${format}?preferred_currency=${preferredCurrency}&token=${token}`);
   };
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function PortfolioPage() {
     
     setFormLoading(true);
     try {
-      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio/add", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/portfolio/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,7 +137,7 @@ export default function PortfolioPage() {
   const handleRemoveHolding = async (holdingId: string) => {
     if (!confirm("Are you sure you want to remove this stock from your holdings?")) return;
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/portfolio/remove/${holdingId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/portfolio/remove/${holdingId}`, {
         method: "DELETE"
       });
       if (res.ok) {

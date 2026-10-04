@@ -191,7 +191,7 @@ export default function Sidebar() {
                 onClick={() => {
                   const token = localStorage.getItem("investorgpt_token");
                   if (token) {
-                    fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/logout?token=${token}`, { method: "POST" });
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/logout?token=${token}`, { method: "POST" });
                   }
                   localStorage.removeItem("investorgpt_token");
                   localStorage.removeItem("investorgpt_user_id");

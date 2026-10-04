@@ -23,7 +23,7 @@ function TechnicalAnalysisContent() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/technical/${symbol}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/technical/${symbol}`);
       if (!res.ok) {
         throw new Error(`Symbol ${symbol} not found or insufficient history.`);
       }

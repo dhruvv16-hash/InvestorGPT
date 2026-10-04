@@ -404,23 +404,13 @@ async def chat_modeling_assistant(req: AIChatRequest):
     
     overrides = {}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                f"{settings.OLLAMA_HOST}/api/generate",
-                json={
-                    "model": settings.OLLAMA_MODEL,
-                    "prompt": f"{system_prompt}\n\n{user_content}",
-                    "system": system_prompt,
-                    "stream": False
-                }
-            )
-            if response.status_code == 200:
-                text = response.json().get("response", "").strip()
-                if "{" in text:
-                    text_clean = text[text.find("{"):text.rfind("}")+1]
-                    overrides = json.loads(text_clean)
+        from app.providers.llm import generate_completion
+        text = await generate_completion(system_prompt, user_content)
+        if "{" in text:
+            text_clean = text[text.find("{"):text.rfind("}")+1]
+            overrides = json.loads(text_clean)
     except Exception as e:
-        logger.warning(f"Ollama chat mapping failed: {e}. Falling back to regex.")
+        logger.warning(f"LLM chat mapping failed: {e}. Falling back to regex.")
 
     # Fallback Regex Parsing
     prompt_lower = req.prompt.lower()

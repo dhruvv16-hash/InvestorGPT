@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: investorgpt-api
+    env: docker
+    region: ohio
+    plan: starter
+    rootDir: backend
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: investorgpt-redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        sync: false
+  
+  - type: worker
+    name: investorgpt-worker
+    env: docker
+    region: ohio
+    plan: starter
+    rootDir: backend
+    dockerCommand: python -m app.worker
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: investorgpt-redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+
+  - type: redis
+    name: investorgpt-redis
+    region: ohio
+    plan: free

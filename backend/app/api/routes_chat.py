@@ -123,9 +123,8 @@ Risk Areas:
 {fin_str}
 """
 
-    # 2. Attempt to query local Ollama LLM
-    import ollama
-    from app.config import settings
+    # 2. Attempt to query configured LLM Provider
+    from app.providers.llm import generate_completion
 
     system_prompt = (
         "You are InvestorGPT, an advanced AI investment research assistant.\n"
@@ -142,13 +141,7 @@ Risk Areas:
     )
 
     try:
-        client = ollama.AsyncClient(host=settings.OLLAMA_HOST)
-        # 3.0s timeout to keep it fast
-        response = await client.chat(model=settings.OLLAMA_MODEL, messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": req.message}
-        ])
-        ans = response["message"]["content"]
+        ans = await generate_completion(system_prompt, req.message)
         return {
             "analysis_id": analysis_id,
             "message": ans,
@@ -157,7 +150,7 @@ Risk Areas:
     except Exception as e:
         import logging
         logging.getLogger("investorgpt.routes_chat").warning(
-            f"Ollama chat failed, falling back to smart rules: {e}"
+            f"LLM chat failed, falling back to smart rules: {e}"
         )
 
         # 3. Fallback to Python Smart Rules
@@ -244,9 +237,3 @@ Risk Areas:
             "message": response,
             "source": "InvestorGPT Grounded QA Agent (Smart Fallback)"
         }
-
-    return {
-        "analysis_id": analysis_id,
-        "message": response,
-        "source": "InvestorGPT Grounded QA Agent"
-    }

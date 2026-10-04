@@ -39,20 +39,15 @@ class NewsEngine:
         except Exception as e:
             logger.warning(f"Failed to fetch news RSS for {ticker}: {e}")
 
-        # Return mock articles if RSS fetch returned nothing
+        # No articles fetched: return clearly-labeled synthetic placeholders rather than fake articles
         if not articles:
             articles = [
                 {
-                    "title": f"{company_name} Reports Strong Quarter, High Demand Continues",
-                    "link": "https://finance.yahoo.com",
+                    "title": f"[SYNTHETIC] No live news could be fetched for {company_name}. RSS feed unavailable.",
+                    "link": "",
                     "published_at": datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-                    "source": "Yahoo Finance"
-                },
-                {
-                    "title": f"Analyzing {ticker} Valuation Multiples After Latest Rally",
-                    "link": "https://bloomberg.com",
-                    "published_at": datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
-                    "source": "Bloomberg"
+                    "source": "InvestorGPT (Synthetic Placeholder)",
+                    "is_synthetic": True
                 }
             ]
             

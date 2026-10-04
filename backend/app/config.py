@@ -34,11 +34,15 @@ class Settings(BaseModel):
     CHROMA_PERSIST_DIR: str = Field(default="./data/chroma")
     OLLAMA_HOST: str = Field(default="http://localhost:11434")
     OLLAMA_MODEL: str = Field(default="qwen2.5:14b")
+    LLM_PROVIDER: str = Field(default="ollama")
+    GEMINI_API_KEY: str = Field(default="")
+    GEMINI_MODEL: str = Field(default="gemini-3.8-flash")
     NEWSAPI_KEY: str = Field(default="")
     ALPHAVANTAGE_KEY: str = Field(default="")
     FRED_API_KEY: str = Field(default="")
     LOG_LEVEL: str = Field(default="INFO")
     CONSENSUS_WEIGHTS_PATH: str = Field(default="./config/consensus_weights.yaml")
+    CORS_ORIGINS: str = Field(default="*")
 
     # Default consensus weights (Table 5.5)
     DEFAULT_WEIGHT_FUNDAMENTAL: float = 0.25
@@ -69,9 +73,13 @@ settings = Settings(
     CHROMA_PERSIST_DIR=os.environ.get("CHROMA_PERSIST_DIR", "./data/chroma"),
     OLLAMA_HOST=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
     OLLAMA_MODEL=os.environ.get("OLLAMA_MODEL", "qwen2.5:14b"),
+    LLM_PROVIDER=os.environ.get("LLM_PROVIDER", "ollama"),
+    GEMINI_API_KEY=os.environ.get("GEMINI_API_KEY", ""),
+    GEMINI_MODEL=os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
     NEWSAPI_KEY=os.environ.get("NEWSAPI_KEY", ""),
     ALPHAVANTAGE_KEY=os.environ.get("ALPHAVANTAGE_KEY", ""),
     FRED_API_KEY=os.environ.get("FRED_API_KEY", ""),
     LOG_LEVEL=os.environ.get("LOG_LEVEL", "INFO"),
     CONSENSUS_WEIGHTS_PATH=os.environ.get("CONSENSUS_WEIGHTS_PATH", "./config/consensus_weights.yaml"),
+    CORS_ORIGINS=os.environ.get("CORS_ORIGINS", "*"),
 )

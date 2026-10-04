@@ -18,6 +18,7 @@ from app.engines.macro_engine import MacroEngine
 from app.engines.news_engine import NewsEngine
 from app.engines.sentiment_engine import SentimentEngine
 from app.engines.risk_engine import RiskEngine
+from app.config import settings
 
 logger = logging.getLogger("investorgpt.orchestrator")
 
@@ -112,6 +113,49 @@ class WorkflowOrchestrator:
         asyncio.create_task(self._execute_pipeline(analysis.id, company))
         return analysis.id
 
+    async def resume_analysis(self, analysis_id: str, query: str) -> str:
+        """Resume analysis for an existing Analysis record (used by worker)."""
+        logger.info(f"Worker resuming analysis for {analysis_id} with query: {query}")
+        
+        # 1. Resolve Company
+        try:
+            profile = await self.resolver.resolve(query, db=self.db)
+        except Exception as e:
+            logger.error(f"Failed to resolve company for query '{query}': {e}")
+            await self._update_state(analysis_id, "FAILED")
+            raise ValueError(f"Could not resolve company for query '{query}'") from e
+            
+        company = self.db.query(Company).filter(
+            Company.ticker == profile["ticker"],
+            Company.exchange == profile["exchange"]
+        ).first()
+
+        if not company:
+            company = Company(
+                ticker=profile["ticker"],
+                exchange=profile["exchange"],
+                country=profile["country"],
+                currency=profile["currency"],
+                sector=profile["sector"],
+                industry=profile["industry"],
+                name=profile["name"],
+                description=profile.get("description"),
+                website=profile.get("website")
+            )
+            self.db.add(company)
+            self.db.commit()
+            self.db.refresh(company)
+            
+        # Update Analysis record with company_id
+        analysis = self.db.query(Analysis).filter(Analysis.id == analysis_id).first()
+        if analysis:
+            analysis.company_id = company.id
+            self.db.commit()
+            
+        # Execute pipeline synchronously in the worker
+        await self._execute_pipeline(analysis_id, company)
+        return analysis_id
+
     async def _update_state(self, analysis_id: str, state: str):
         analysis = self.db.query(Analysis).filter(Analysis.id == analysis_id).first()
         if analysis:
@@ -176,6 +220,15 @@ class WorkflowOrchestrator:
                         self.db.add(f_record)
             self.db.commit()
 
+            # Check if financials are synthetic (Yahoo API failed) - flag this analysis
+            financials_are_synthetic = financials.get("__is_synthetic__", False)
+            if financials_are_synthetic:
+                logger.warning(
+                    f"Synthetic financial data used for {company.ticker}. "
+                    f"F-Score, Z-Score, and DCF calculations will be based on generated data, "
+                    f"not real financial statements."
+                )
+
             # Stage: RUNNING_ENGINES
             await self._update_state(analysis_id, "RUNNING_ENGINES")
 
@@ -203,7 +256,12 @@ class WorkflowOrchestrator:
                 debt_prev = financials["long_term_debt"].get(prev_year, 0)
                 curr_ratio_curr = financials["current_assets"].get(latest_year, 0) / financials["current_liabilities"].get(latest_year, 1)
                 curr_ratio_prev = financials["current_assets"].get(prev_year, 0) / financials["current_liabilities"].get(prev_year, 1)
-                shares_curr = price_data.get("shares_outstanding") or company.shares_outstanding or 1
+                shares_curr = price_data.get("shares_outstanding") or getattr(company, "shares_outstanding", None) or 1_000_000_000
+                if price_data.get("is_synthetic"):
+                    logger.warning(
+                        f"Yahoo price fallback (synthetic) used for {company.ticker}. "
+                        f"DCF and margin-of-safety calculations may be significantly inaccurate."
+                    )
                 shares_prev = shares_curr  # assume constant for simplification
                 gross_margin_curr = (rev_curr - financials["cogs"].get(latest_year, 0)) / rev_curr if rev_curr else 0
                 gross_margin_prev = (rev_prev - financials["cogs"].get(prev_year, 0)) / rev_prev if rev_prev else 0
@@ -408,11 +466,66 @@ class WorkflowOrchestrator:
 
             # Stage: CONSENSUS
             await self._update_state(analysis_id, "CONSENSUS")
-            
+
+            # --- Derive votes from all 8 engines ---
+
+            # News Sentiment vote: score > 0.1 = BUY, < -0.1 = SELL, else HOLD
+            sent_score = sentiment_data.get("sentiment_score", 0.0)
+            if sent_score > 0.1:
+                sentiment_votes = {"decision": "BUY", "confidence": min(0.90, 0.65 + sent_score)}
+            elif sent_score < -0.1:
+                sentiment_votes = {"decision": "SELL", "confidence": min(0.90, 0.65 + abs(sent_score))}
+            else:
+                sentiment_votes = {"decision": "HOLD", "confidence": 0.60}
+
+            # Macro vote: strong GDP + low inflation = bullish, stagflation = bearish
+            macro_gdp = macro_data.get("gdp_growth", 2.5)
+            macro_inf = macro_data.get("inflation", 3.5)
+            if macro_gdp >= 2.5 and macro_inf <= 4.0:
+                macro_votes = {"decision": "BUY", "confidence": 0.65}
+            elif macro_gdp < 0 or macro_inf > 7.0:
+                macro_votes = {"decision": "SELL", "confidence": 0.70}
+            else:
+                macro_votes = {"decision": "HOLD", "confidence": 0.60}
+
+            # Risk vote: map overall_level to a decision
+            risk_level = risk_data.get("overall_level", "MEDIUM")
+            if risk_level == "LOW":
+                risk_votes = {"decision": "BUY", "confidence": 0.75}
+            elif risk_level == "HIGH":
+                risk_votes = {"decision": "SELL", "confidence": 0.80}
+            else:
+                risk_votes = {"decision": "HOLD", "confidence": 0.60}
+
+            # Competitor vote: use peer comparison median PE vs company PE
+            # competitor_data is a list of peer dicts with "pe" field
+            competitor_votes = {"decision": "HOLD", "confidence": 0.55}
+            if isinstance(competitor_data, list) and competitor_data:
+                peer_pes = [p.get("pe") for p in competitor_data if isinstance(p.get("pe"), (int, float)) and p["pe"] > 0]
+                if peer_pes:
+                    import statistics
+                    median_pe = statistics.median(peer_pes)
+                    company_pe = financials.get("pe_ratio", {}) or {}
+                    if isinstance(company_pe, dict):
+                        company_pe_val = next(iter(company_pe.values()), None) if company_pe else None
+                    else:
+                        company_pe_val = float(company_pe) if company_pe else None
+                    if company_pe_val and company_pe_val > 0:
+                        if company_pe_val < median_pe * 0.85:
+                            competitor_votes = {"decision": "BUY", "confidence": 0.70}
+                        elif company_pe_val > median_pe * 1.25:
+                            competitor_votes = {"decision": "SELL", "confidence": 0.65}
+
+            # Build full vote array with weights from settings
             votes = [
-                {"engine": "fundamental", **fundamental_votes, "weight": 0.40},
-                {"engine": "valuation", **valuation_votes, "weight": 0.35},
-                {"engine": "technical", **tech_votes, "weight": 0.25}
+                {"engine": "fundamental",     **fundamental_votes,  "weight": settings.DEFAULT_WEIGHT_FUNDAMENTAL},
+                {"engine": "valuation",        **valuation_votes,    "weight": settings.DEFAULT_WEIGHT_VALUATION},
+                {"engine": "technical",        **tech_votes,         "weight": settings.DEFAULT_WEIGHT_TECHNICAL},
+                {"engine": "risk",             **risk_votes,         "weight": settings.DEFAULT_WEIGHT_RISK},
+                {"engine": "news_sentiment",   **sentiment_votes,    "weight": settings.DEFAULT_WEIGHT_NEWS},
+                {"engine": "macro",            **macro_votes,        "weight": settings.DEFAULT_WEIGHT_MACRO},
+                {"engine": "sentiment_score",  **sentiment_votes,    "weight": settings.DEFAULT_WEIGHT_SENTIMENT},
+                {"engine": "competitor",       **competitor_votes,   "weight": settings.DEFAULT_WEIGHT_COMPETITOR},
             ]
             consensus_result = self.consensus_engine.compute_consensus(votes)
             decision = consensus_result["decision"]

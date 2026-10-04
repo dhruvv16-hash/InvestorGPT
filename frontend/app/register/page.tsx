@@ -32,7 +32,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/register", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

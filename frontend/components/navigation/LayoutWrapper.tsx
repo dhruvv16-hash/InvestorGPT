@@ -23,7 +23,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         url = (input as any).url;
       }
 
-      const isBackendCall = url.includes("backend-gamma-mocha-34.vercel.app") || url.includes("/api/v1");
+      const isBackendCall = url.includes("127.0.0.1:8000") || url.includes("/api/v1");
       
       if (isBackendCall) {
         const token = localStorage.getItem("investorgpt_token");

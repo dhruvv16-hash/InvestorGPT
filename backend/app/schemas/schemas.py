@@ -17,9 +17,7 @@ class CompanySchema(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     analysis_id: str
-    state: str
-    company: CompanySchema
-    poll_url: str
+    status: str
 
 class RecommendationSchema(BaseModel):
     decision: str

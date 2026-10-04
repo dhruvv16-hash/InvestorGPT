@@ -20,9 +20,11 @@ export default function HomeClient() {
   const searchCacheRef = useRef<Record<string, any[]>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_API_URL}`;
+
   const fetchRecentSearches = async (uId: string) => {
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/search/recent?user_id=${uId}`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/search/recent?user_id=${uId}`);
       if (res.ok) {
         const json = await res.json();
         setRecentSearches(json.recent || []);
@@ -34,7 +36,7 @@ export default function HomeClient() {
 
   const fetchTrendingSearches = async () => {
     try {
-      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/search/trending");
+      const res = await fetch(`${API_BASE_URL}/api/v1/search/trending`);
       if (res.ok) {
         const json = await res.json();
         setTrendingSearches(json.trending || []);
@@ -55,7 +57,7 @@ export default function HomeClient() {
 
     const fetchLocalCompanies = async () => {
       try {
-        const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/companies");
+        const res = await fetch(`${API_BASE_URL}/api/v1/companies`);
         if (res.ok) {
           const json = await res.json();
           setLocalCompanies(json.companies || []);
@@ -83,7 +85,7 @@ export default function HomeClient() {
     const uId = userId || localStorage.getItem("investorgpt_user_id");
     if (!uId) return;
     try {
-      await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/search/click", {
+      await fetch(`${API_BASE_URL}/api/v1/search/click`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,7 +108,7 @@ export default function HomeClient() {
     const uId = userId || localStorage.getItem("investorgpt_user_id");
     if (!uId) return;
     try {
-      const res = await fetch(`https://backend-gamma-mocha-34.vercel.app/api/v1/search/recent?user_id=${uId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/search/recent?user_id=${uId}`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -125,7 +127,7 @@ export default function HomeClient() {
 
     try {
       // Direct POST to backend API to initialize analysis
-      const res = await fetch("https://backend-gamma-mocha-34.vercel.app/api/v1/analyze", {
+      const res = await fetch(`${API_BASE_URL}/api/v1/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: symbol }),
@@ -137,8 +139,39 @@ export default function HomeClient() {
       }
 
       const data = await res.json();
-      // Route user to the company page with the poll URL / analysis_id
-      router.push(`/company/${data.company.ticker}?analysis_id=${data.analysis_id}`);
+      
+      let status = data.status || "QUEUED";
+      let detailData = null;
+      
+      // Poll the status endpoint until completed or failed
+      while (status !== "COMPLETED" && status !== "FAILED") {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        // Ensure component hasn't unmounted and analysis wasn't aborted
+        if (abortControllerRef.current?.signal.aborted) {
+          setLoading(false);
+          return;
+        }
+
+        const statusRes = await fetch(`${API_BASE_URL}/api/v1/analyze/${data.analysis_id}/status`);
+        if (statusRes.ok) {
+          detailData = await statusRes.json();
+          status = detailData.state || detailData.status;
+        } else {
+          throw new Error("Failed to retrieve analysis status.");
+        }
+      }
+      
+      if (status === "FAILED") {
+        throw new Error("Analysis failed during background processing.");
+      }
+      
+      if (detailData && detailData.company && detailData.company.ticker && detailData.company.ticker !== "PENDING") {
+        // Route user to the company page with the poll URL / analysis_id
+        router.push(`/company/${detailData.company.ticker}?analysis_id=${data.analysis_id}`);
+      } else {
+        throw new Error("Analysis completed but company details were missing.");
+      }
     } catch (err: any) {
       setError(err.message || "Something went wrong. Make sure backend is running.");
       setLoading(false);
@@ -207,7 +240,7 @@ export default function HomeClient() {
 
       try {
         const res = await fetch(
-          `https://backend-gamma-mocha-34.vercel.app/api/v1/search?q=${encodeURIComponent(term)}`,
+          `${API_BASE_URL}/api/v1/search?q=${encodeURIComponent(term)}`,
           { signal }
         );
         if (res.ok) {

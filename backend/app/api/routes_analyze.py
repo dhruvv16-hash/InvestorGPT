@@ -13,44 +13,38 @@ router = APIRouter(tags=["Analysis"])
 async def start_analysis(
     req: AnalyzeRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    event_bus: EventBus = Depends(get_event_bus)
+    db: Session = Depends(get_db)
 ):
-    orchestrator = WorkflowOrchestrator(db, event_bus)
     try:
-        analysis_id = await orchestrator.run_analysis(req.query)
+        # Create Analysis record
+        analysis = Analysis(user_id=current_user.id, state="QUEUED", version=1)
+        db.add(analysis)
+        db.commit()
+        db.refresh(analysis)
         
-        # Query created analysis and set user_id ownership
-        analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
-        if analysis:
-            analysis.user_id = current_user.id
-            db.commit()
-            
-        company = db.query(Company).filter(Company.id == analysis.company_id).first()
-
+        # Enqueue job into Redis
+        import redis
+        import json
+        from app.config import settings
+        
+        redis_client = redis.Redis.from_url(settings.REDIS_URL)
+        job_data = {
+            "analysis_id": analysis.id,
+            "query": req.query
+        }
+        redis_client.rpush("analysis_jobs", json.dumps(job_data))
+        
         return AnalyzeResponse(
-            analysis_id=analysis_id,
-            state=analysis.state,
-            company={
-                "ticker": company.ticker,
-                "exchange": company.exchange,
-                "country": company.country,
-                "currency": company.currency,
-                "sector": company.sector,
-                "industry": company.industry,
-                "name": company.name,
-                "description": company.description,
-                "website": company.website
-            },
-            poll_url=f"/api/v1/analyze/{analysis_id}"
+            analysis_id=analysis.id,
+            status="QUEUED"
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
-@router.get("/analyze/{analysis_id}", response_model=AnalysisDetailResponse)
+@router.get("/analyze/{analysis_id}/status", response_model=AnalysisDetailResponse)
 async def get_analysis_status(
     analysis_id: str,
     current_user: User = Depends(get_current_user),
@@ -69,8 +63,11 @@ async def get_analysis_status(
             detail="Access to this analysis is restricted to the owner."
         )
     
-    company = db.query(Company).filter(Company.id == analysis.company_id).first()
-    
+    if analysis.company_id:
+        company = db.query(Company).filter(Company.id == analysis.company_id).first()
+    else:
+        # If company not resolved yet, provide a dummy one for the schema
+        company = Company(ticker="PENDING", exchange="PENDING", country="PENDING", currency="PENDING", name="Resolving...")
     # Query all computed/fetched records
     financials = db.query(Financial).filter(Financial.analysis_id == analysis_id).all()
     tech_data = db.query(TechnicalData).filter(TechnicalData.analysis_id == analysis_id).all()
